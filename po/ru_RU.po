@@ -1,0 +1,484 @@
+# VDR plugin language source file.
+# Copyright (C) 2007 Klaus Schmidinger <kls@cadsoft.de>
+# This file is distributed under the same license as the VDR package.
+# Vyacheslav Dikonov <sdiconov@mail.ru>, 2004
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: vdr-channelscan\n"
+"Report-Msgid-Bugs-To: <reelbox-devel@mailings.reelbox.org>\n"
+"POT-Creation-Date: 2013-04-18 21:10+0400\n"
+"PO-Revision-Date: 2008-09-29 10:24+0200\n"
+"Last-Translator: \n"
+"Language-Team: <vdr@linuxtv.org>\n"
+"Language: ru\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+msgid "Channel lists"
+msgstr "Список каналов"
+
+msgid "Backup"
+msgstr "Резервировать"
+
+msgid "Backup channel list to..."
+msgstr "Резервиров. список в..."
+
+msgid "Restore channel list from..."
+msgstr "Восстановить список из..."
+
+msgid "Restore failed!"
+msgstr "Сбой рез. копии!"
+
+msgid "Favourites List successfully loaded"
+msgstr "Избранное загруженно"
+
+msgid "Invalid file"
+msgstr "Нечитаемый файл"
+
+msgid "Channel List successfully loaded"
+msgstr "Список каналов загружен успешно"
+
+msgid "Backup failed!"
+msgstr "Сбой рез. копирования!"
+
+msgid "Channel List successfully stored"
+msgstr "Список каналов сохранён успешно"
+
+msgid "TV only"
+msgstr "Только ТВ"
+
+msgid "TV FTA only"
+msgstr "Только открытое ТВ"
+
+msgid "Radio only"
+msgstr "Только Радио"
+
+msgid "HDTV only"
+msgstr "Только ТВВЧ"
+
+msgid "HDTV FTA only"
+msgstr "Только открытое ТВВЧ"
+
+msgid "Radio + TV"
+msgstr "Радио + ТВ"
+
+msgid "Radio + TV FTA only"
+msgstr "Только открытое Радио + ТВ"
+
+msgid "Servicetype"
+msgstr "Тип сервиса"
+
+msgid "Enable Logfile"
+msgstr "Лог в файл"
+
+msgid "No tuners, please stop recording and retry"
+msgstr "Нет тюнера, остановите запись и повторите"
+
+msgid "Channelscan"
+msgstr "Поиск каналов"
+
+msgid "none"
+msgstr "ничего"
+
+msgid "auto"
+msgstr "авто"
+
+msgid "Detailed search"
+msgstr "Искать детально"
+
+msgid "UDP multicast search"
+msgstr "UDP широковещательный поиск"
+
+msgid "Manual"
+msgstr "Ручной"
+
+msgid "SearchMode$Auto"
+msgstr "Автопоиск"
+
+msgid "End of channellist"
+msgstr "Конец списка"
+
+msgid "New channellist"
+msgstr "Новый список"
+
+msgid "Bouquets"
+msgstr "Буклеты"
+
+msgid "Intelligent 6900/6875/6111"
+msgstr "Тонко с 6900/6875/6111"
+
+msgid "Try all 6900/6875/6111"
+msgstr "Искать все 6900/6875/6111"
+
+msgid "Start ip address"
+msgstr "Начальный адрес"
+
+msgid "End   ip address"
+msgstr "Конечный  адрес"
+
+msgid "UDP multicast address"
+msgstr "UDP широковещ. адрес"
+
+msgid "UDP port"
+msgstr "UDP порт"
+
+msgid "Timeout, sec"
+msgstr "Ожидать, сек"
+
+msgid "Satellite-S2"
+msgstr "Спутниковое-S2"
+
+msgid "Satellite-S"
+msgstr "Спутниковое-S"
+
+msgid "Terrestrial"
+msgstr "Наземное-T"
+
+msgid "Cable"
+msgstr "Кабельное-C"
+
+msgid "DVB-T2 - Terrestrial"
+msgstr "DVB-T2 - Наземный"
+
+msgid "Tuner"
+msgstr "Тюнер"
+
+msgid "DVB-T - Terrestrial"
+msgstr "DVB-T - Наземный"
+
+msgid "DVB-C - Cable"
+msgstr "DVB-C - Кабельный"
+
+msgid "DVB-S2 - Satellite"
+msgstr "DVB-S2 - Спутниковый"
+
+msgid "DVB-S - Satellite"
+msgstr "DVB-S - Спутниковый"
+
+msgid "Analog"
+msgstr "Аналоговый"
+
+msgid "DVB-IP - Network"
+msgstr "DVB-IP - Сеть"
+
+msgid "Search Mode"
+msgstr "Вид поиска"
+
+msgid "Add new channels to"
+msgstr "Добав. каналы в"
+
+msgid "Source"
+msgstr "Источник"
+
+msgid "No Tuners available"
+msgstr "Нет тюнера"
+
+msgid "Position"
+msgstr "Позиция"
+
+msgid "Bandwidth"
+msgstr "Шир. диапазона"
+
+msgid "no"
+msgstr "нет"
+
+msgid "yes"
+msgstr "да"
+
+msgid "No"
+msgstr "Нет"
+
+msgid "Yes"
+msgstr "Да"
+
+msgid "Region"
+msgstr "Регион"
+
+msgid "Symbol Rates"
+msgstr "Симв. скорость"
+
+msgid "Frequency (MHz)"
+msgstr "Частота (МГц)"
+
+msgid "Polarization"
+msgstr "Поляризация"
+
+msgid "Symbolrate"
+msgstr "Симв.скорость"
+
+msgid "DVB generation"
+msgstr "DVB поколение"
+
+msgid "DVB-S2 stream ID"
+msgstr "DVB-S2 ИД потока"
+
+msgid "DVB-T2 stream ID"
+msgstr "DVB-T2 ИД потока"
+
+msgid "DVB-T2 system ID"
+msgstr "DVB-T2 ИД системы"
+
+msgid "Modulation"
+msgstr "Модуляция"
+
+msgid "Frequency (kHz)"
+msgstr "Частота (КГц)"
+
+msgid "Recording is running !"
+msgstr "Запись начата!"
+
+msgid "Button$Start"
+msgstr "ПОИСК"
+
+msgid "Button$Save"
+msgstr "ЗАПИСЬ"
+
+msgid "Channel sel."
+msgstr "Выбор кан."
+
+msgid "DiSEqC"
+msgstr "DiSEqC"
+
+msgid "Scanning aborted"
+msgstr "Поиск остановлен"
+
+msgid "Scanning succed"
+msgstr "Поиск закончен"
+
+msgid "Retrieving transponders failed!"
+msgstr "Сбой получения транспондеров!"
+
+msgid "Please check satellites.conf."
+msgstr "Проверьте source.conf"
+
+msgid "Tuner obtained no lock!"
+msgstr "Тюнер не принимает!"
+
+msgid "Please check your connections and satellites.conf."
+msgstr "Проверьте антенну и source.conf"
+
+msgid "Unpredictable error occured!"
+msgstr "Непредсказуемая ошибка!"
+
+msgid "Please try again later"
+msgstr "Попробуйте позже"
+
+msgid "Information:"
+msgstr "Информация:"
+
+msgid "Entries in current channellist"
+msgstr "Записи в текущем списке"
+
+msgid "Recording is running"
+msgstr "Происходит запись"
+
+msgid "Scan active"
+msgstr "Идёт поиск"
+
+msgid "TV Channels\tRadio Channels"
+msgstr "ТВ Каналы  \tРадио Каналы"
+
+#, c-format
+msgid "Retrieving transponder list from %s"
+msgstr "Получение списка транспондеров от %s"
+
+#, c-format
+msgid "Scanning %s (%iMHz) %s"
+msgstr "Поиск %s (%iМГц) %s"
+
+#, c-format
+msgid "Scanning %s (%.1fMHz) %s"
+msgstr "Поиск %s (%.1fМГц) %s"
+
+#, c-format
+msgid "Scanning %s (%.3fMHz) %s"
+msgstr "Поиск %s (%.3fМГц) %s"
+
+#, c-format
+msgid "Scanning %s (%s) %s"
+msgstr "Поиск %s (%s) %s"
+
+msgid "No new channels found"
+msgstr "Новых каналов нет"
+
+msgid "Added new channels"
+msgstr "Добавлены каналы"
+
+msgid "Press OK to finish or Back for new scan"
+msgstr "ОК - выход, Назад - новый поиск"
+
+msgid "Scanning on transponder"
+msgstr "Ищу на транспондере"
+
+msgid "NIT Scan"
+msgstr "NIT Поиск"
+
+msgid "RUS terr."
+msgstr "Россия эфир"
+
+msgid "RUS cable"
+msgstr "Россия кабель"
+
+msgid "EUR"
+msgstr "Европа"
+
+msgid "Auto"
+msgstr "Авто"
+
+msgid "enabled"
+msgstr "включён"
+
+msgid "disabled"
+msgstr "выключен"
+
+msgid "Back"
+msgstr "Назад"
+
+msgid "Skip"
+msgstr "Пропуск"
+
+msgid "Load predefined channel list"
+msgstr "Загрузить список каналов"
+
+msgid "Start channelscan"
+msgstr "Старт поиска"
+
+msgid "    Overwrite Favourites list"
+msgstr "Перезаписать Избранный список"
+
+msgid "You have the choice of loading a predefined channel list OR starting channelscan to find channels"
+msgstr "Вы можете загрузить список каналов или запустить поиск каналов"
+
+msgid "Press OK to reload default channel list"
+msgstr "Нажмите ОК для загрузки списка каналов"
+
+msgid "Functions"
+msgstr "Функции"
+
+msgid "Please select a channellist:"
+msgstr "Выберете список каналов"
+
+msgid "Overwrite existing favourites list, also?"
+msgstr "Перезаписать избранный список, также?"
+
+msgid "Loading channel list ..."
+msgstr "Загрузка списка каналов..."
+
+msgid "Channellist was installed successfully"
+msgstr "Список каналов установлен"
+
+msgid "Error while loading channellist"
+msgstr "Ошибка загрузки списка каналов"
+
+msgid "Changes Done"
+msgstr "Изменения сделаны"
+
+msgid "Please check your Timers!"
+msgstr "Проверьте таймер!"
+
+msgid "Changes failed"
+msgstr "Сбой изменений"
+
+msgid "Reloaded default channel list"
+msgstr "Перезагрузка обчного списка"
+
+msgid "Error loading default channel list"
+msgstr "Ошибка загрузка обычного списка"
+
+msgid "Delete channel list?"
+msgstr "Удалить список каналов?"
+
+msgid "Channel lists functions"
+msgstr "Функции списка каналов"
+
+msgid "Import a channellist"
+msgstr "Внести список каналов"
+
+msgid "Export current channellist"
+msgstr "Выгрузить текущий список"
+
+msgid "Import favourites list"
+msgstr "Внести избранный список"
+
+msgid "Export current favourites list"
+msgstr "Выгрузить текущий избранный список"
+
+msgid "Import channels from ReelBox Avantgarde"
+msgstr "Внести список из ReelBox Avantgarde"
+
+msgid "Scanning channels on Tuners and Iptv"
+msgstr "Поиск каналов на Тюнерах и Iptv"
+
+msgid "Channel Scan"
+msgstr "Поиск каналов"
+
+msgid "%s Signal:  %d"
+msgstr "%s Сигнал:   %d"
+
+msgid "%s Quality: %d"
+msgstr "%s Качество: %d"
+
+msgid "Channel"
+msgstr "Канал"
+
+msgid "Incorrect channel!"
+msgstr "Неправильный Канал!"
+
+msgid "NOT implemented, use wirbelscan plugin"
+msgstr "НЕ реализовано, используйте wirbelscan плугин"
+
+msgid "Provider's Name"
+msgstr "Название поставщика"
+
+msgid "Input"
+msgstr "Вход"
+
+msgid "Standard"
+msgstr "Стандарт"
+
+msgid "Band"
+msgstr "Диапазон"
+
+msgid "Analog search"
+msgstr "Искать"
+
+msgid "TV"
+msgstr "ТВ"
+
+msgid "FM Radio"
+msgstr "ЧМ Радио"
+
+msgid "China"
+msgstr "Китай"
+
+msgid "USA"
+msgstr "США"
+
+msgid "Japan"
+msgstr "Япония"
+
+msgid "Press RED to save or OK to finish or Back for new scan"
+msgstr "Красный - записать, ОК - закончить, Назад - новый поиск"
+
+msgid "Device"
+msgstr "Устройство"
+
+msgid "Device Name:"
+msgstr "Название Устройства:"
+
+msgid "Button$Update"
+msgstr "Обновить"
+
+msgid "Transponders update is started"
+msgstr "Обновление транспондеров запущено"
+
+msgid "Transponders update failed!"
+msgstr "Сбой обновления транспондеров!"
+
+msgid "Transponders updated!"
+msgstr "Транспондеры обновлены!"
+
+msgid "Transponders File Type"
+msgstr "Тип файла транспондеров"
