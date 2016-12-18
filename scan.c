@@ -734,7 +734,8 @@ void cScan::ScanDVB_T(cTransponder * tp, cChannel * c)
     }
 
     int offsets[3] = { 0, -166666, 166666 };
-    int maxsys = scanParameter_.type == TERR2 ? 2 : 1;
+    int maxsys = scanParameter_.type == TERR2 ? 2 : 1; //for auto scan need try TERR and TERR2
+    if (scanParameter_.frequency > 5) maxsys = 1; //for manual scan not need try both TERR and TERR2
 
     tp->SetFrequency(frequency_orig);
 
