@@ -746,7 +746,7 @@ void PatFilter::GetFoundNum(int &current, int &total)
 SdtFilter::SdtFilter(PatFilter * PatFilter)
 {
     patFilter = PatFilter;
-//source = cSource::stNone;
+
     numSid = 0;
     Rid = 0;
     numUsefulSid = 0;
@@ -763,16 +763,10 @@ cMutexLock MutexLock(&mutex);
     cFilter::SetStatus(On);
     sectionSyncer.Reset();
 }
-/*
-void cSdtFilter::Trigger(int Source)
-{
-  cMutexLock MutexLock(&mutex);
-  source = Source;
-}
-*/
+
 void SdtFilter::Process(u_short Pid, u_char Tid, const u_char * Data, int Length)
 {
-cMutexLock MutexLock(&mutex);
+    cMutexLock MutexLock(&mutex);
     const time_t tt = time(NULL);
     char *strDate;
     asprintf(&strDate, "%s", asctime(localtime(&tt)));
@@ -924,6 +918,7 @@ cMutexLock MutexLock(&mutex);
                                 DEBUG_SDT(DBGSDT "---------------------- Channelscan Add Chanel pn %s ps %s pp %s --------------\n", pn, ps, pp);
 
                                 channel->SetId(sdt.getOriginalNetworkId(), sdt.getTransportStreamId(), SiSdtService.getServiceId(), channel->Rid());
+
                                 //if (Setup.UpdateChannels >= 1)
                                 channel->SetName(pn, ps, pp);
                                 // Using SiSdtService.getFreeCaMode() is no good, because some
@@ -987,9 +982,9 @@ cMutexLock MutexLock(&mutex);
             else
                 delete LinkChannels;
         }
-
     }
     Channels.Unlock();
+
     if (sdt.getSectionNumber() == sdt.getLastSectionNumber())
     {
         patFilter->SdtFinished();
@@ -998,6 +993,60 @@ cMutexLock MutexLock(&mutex);
     const time_t ttout = time(NULL);
     asprintf(&strDate, "%s", asctime(localtime(&ttout)));
     DEBUG_printf("\n\nSdtFilter::Process OUT :%4.1fsec: %s\n", (float)difftime(ttout, tt), strDate);
+}
+
+// --- cSdtMuxFilter ------------------------------------------------------------
+
+SdtMuxFilter::SdtMuxFilter(PatFilter * PatFilter)
+{
+    patFilter = PatFilter;
+//source = cSource::stNone;
+    numMux = 0;
+    Set(0x11, 0x46);            // SDT other mux
+#ifdef REELVDR
+    Set(0x1fff, 0x46);
+#endif
+}
+
+void SdtMuxFilter::SetStatus(bool On)
+{
+cMutexLock MutexLock(&mutex);
+    cFilter::SetStatus(On);
+    sectionSyncer.Reset();
+}
+
+void SdtMuxFilter::Process(u_short Pid, u_char Tid, const u_char * Data, int Length)
+{
+    cMutexLock MutexLock(&mutex);
+    const time_t tt = time(NULL);
+    char *strDate;
+    int a, found = 0;
+
+    asprintf(&strDate, "%s", asctime(localtime(&tt)));
+    DEBUG_printf("\nSdtMuxFilter::Process IN %s\n", strDate);
+
+    if (!(Source() && Transponder()))
+        return;
+    SI::SDT sdt(Data, false);
+    if (!sdt.CheckCRCAndParse())
+        return;
+
+    DEBUG_printf("found stream %x\n",sdt.getTransportStreamId());
+
+    for (a = 0;a < numMux;a++)
+    {
+        if(Mux[a] == sdt.getTransportStreamId())
+            found = 1;
+    }
+    if (!found) //add TransportStreamId to Mux[]
+    {
+        Mux[numMux] = sdt.getTransportStreamId();
+        numMux++;
+        DEBUG_printf("add mux %x num mux %d\n",sdt.getTransportStreamId(),numMux);
+    }
+    const time_t ttout = time(NULL);
+    asprintf(&strDate, "%s", asctime(localtime(&ttout)));
+    DEBUG_printf("\n\nSdtMuxFilter::Process OUT :%4.1fsec: %s\n", (float)difftime(ttout, tt), strDate);
 }
 
 
@@ -1046,7 +1095,6 @@ NitFilter::~NitFilter()
 bool NitFilter::Found()
 {
     return found_;
-
 }
 
 void NitFilter::Process(u_short Pid, u_char Tid, const u_char * Data, int Length)
@@ -1168,7 +1216,7 @@ void NitFilter::Process(u_short Pid, u_char Tid, const u_char * Data, int Length
     for (SI::Loop::Iterator it; nit.transportStreamLoop.getNext(ts, it);)
     {
         insert = false;
-        //DEBUG_NIT(DBGNIT " -- found TS_ID %d\n",  ts.getTransportStreamId());
+        DEBUG_NIT(DBGNIT " -- found TS_ID %d\n",  ts.getTransportStreamId());
 
         SI::Descriptor * d;
 
@@ -1286,6 +1334,7 @@ void NitFilter::Process(u_short Pid, u_char Tid, const u_char * Data, int Length
                         {
                         case SI::T2DeliverySystemDescriptorTag:
                             {
+esyslog("nit terr2\n");
                                 if (mode != TERR && mode != TERR2) break; // to prevent incorrect nit
                                 SI::T2DeliverySystemDescriptor *td = (SI::T2DeliverySystemDescriptor *)d;
                                 system =  DVB_SYSTEM_2;
@@ -1311,7 +1360,7 @@ void NitFilter::Process(u_short Pid, u_char Tid, const u_char * Data, int Length
                     getTransponderNum++;
                     static int Bandwidths[] = { 8000000, 7000000, 6000000, 5000000, 0, 0, 0, 0 };
                     if (!system) Bandwidth = Bandwidths[sd->getBandwidth()];
-
+esyslog("nit terr\n");
                     for (int n = 0; n < NumFrequencies; n++)
                     {
 

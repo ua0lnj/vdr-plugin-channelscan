@@ -290,6 +290,7 @@ class cTerrTransponder:public cTransponder
     bool SetTransponderData(cChannel * c, int Code = 0);
     ///<  set transponder Data to channel
     virtual void PrintData() const;
+    void SetStreamId(int strid);
 
   private:
     int fec_l_;

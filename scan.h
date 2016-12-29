@@ -111,9 +111,11 @@ class cScan:public cThread
 
     int lastLocked;
     int foundNum, totalNum;
+    int foundMux;
 
     NitFilter *nitFilter_;
     SdtFilter *SFilter;
+    SdtMuxFilter *SMFilter;
     PatFilter *PFilter;
     cEitFilter *EFilter;
 

@@ -105,6 +105,7 @@ class cMenuChannelscan:public cOsdMenu
     const char *modTextsA[3];
     const char *sysTexts[2];
     const char *modTextsS2[6];
+    const char *plpTexts[2];
     const char *searchTexts[2];
     const char *NITScan[2];
     const char *srScanTexts[3];
@@ -124,6 +125,7 @@ class cMenuChannelscan:public cOsdMenu
     int srScanMode;
     int regionStat;
     int sysStat;
+    int plpStat;
     int numNITScan;
     int analogType;
     int inputStat;

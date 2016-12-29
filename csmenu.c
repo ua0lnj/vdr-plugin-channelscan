@@ -179,10 +179,13 @@ cMenuChannelscan::cMenuChannelscan(int src, int freq, int symrate, char pol, boo
 
     fecStatS2 = 3;
 
+    sysStat = 0;
     sysTexts[0] = "S1/T1";
     sysTexts[1] = "S2/T2";
 
-    sysStat = 0;
+    plpStat = 0;
+    plpTexts[0] = tr("Auto");
+    plpTexts[1] = tr("Manual");
 
     // Cable
     modTexts[0] = "QAM 4/QPSK";
@@ -778,10 +781,10 @@ void cMenuChannelscan::Set()
                 blankLines += 1;
                 break;
             case SATS2:
-                AddBlankLineItem(1);
                 Add(new cMenuEditStraItem(tr("DVB generation"), &sysStat, 2, sysTexts));
+                AddBlankLineItem(1);
                 if(sysStat && srcMS[currentTuner])
-                    Add(new cMenuEditIntItem(tr("DVB-S2 stream ID"), &streamId));
+                    Add(new cMenuEditIntItem(tr("DVB-S2 stream ID"), &streamId, 0, 65525));
                 else
                     AddBlankLineItem(1);
                 Add(new cMenuEditIntItem(tr("Frequency (MHz)"), &frequency));
@@ -818,14 +821,17 @@ void cMenuChannelscan::Set()
                 break;
             case TERR2:
                 Add(new cMenuEditIntItem(tr("Channel"), &channel));
-                AddBlankLineItem(1);
                 Add(new cMenuEditStraItem(tr("DVB generation"), &sysStat, 2, sysTexts));
                 if(sysStat && srcMS[currentTuner])
                 {
-                    Add(new cMenuEditIntItem(tr("DVB-T2 stream ID"), &streamId));
+                    Add(new cMenuEditStraItem(tr("Stream scan"), &plpStat, 2, plpTexts));
+                    if(plpStat)
+                        Add(new cMenuEditIntItem(tr("DVB-T2 stream ID"), &streamId, 0, 65525));
+                    else
+                        AddBlankLineItem(1);
                 }
                 else
-                    AddBlankLineItem(1);
+                    AddBlankLineItem(2);
             case TERR:
             case DMB_TH:
             case ISDB_T:
@@ -1030,6 +1036,7 @@ eOSState cMenuChannelscan::ProcessKey(eKeys Key)
     int oldScanMode = scanMode;
     oldCurrentTuner = currentTuner;
     int oldsysStat = sysStat;
+    int oldplpStat = plpStat;
     int oldSourceStat = currentTuner;
     int oldSRScanMode = srScanMode;
     int oldchannel = channel;
@@ -1116,7 +1123,7 @@ eOSState cMenuChannelscan::ProcessKey(eKeys Key)
         scp.symbolrate_mode = srScanMode;
         scp.nitscan = numNITScan;
         scp.region = regionStat + (sourceType == ANALOG ? 100 : 0);
-        scp.streamId = streamId;
+        scp.streamId = plpStat ? streamId : NO_STREAM_ID_FILTER; // for auto
 //        scp.t2systemId = t2systemId;
         memcpy(&scp.startip,startIp,sizeof(scp.startip));
         memcpy(&scp.endip,endIp,sizeof(scp.endip));
@@ -1283,7 +1290,8 @@ eOSState cMenuChannelscan::ProcessKey(eKeys Key)
     if (Key != kNone && !HadSubMenu)
     {
         if (oldDetailedScan != detailedScan || oldScanMode != scanMode || oldsysStat != sysStat || oldExpertSettings != expertSettings || oldSourceStat != currentTuner 
-        || oldSRScanMode != srScanMode || oldregionStat != regionStat || oldmodStat != modStat || oldanalogType != analogType || oldinputStat != inputStat || oldstdStat != stdStat)
+        || oldSRScanMode != srScanMode || oldregionStat != regionStat || oldmodStat != modStat || oldanalogType != analogType || oldinputStat != inputStat 
+        || oldstdStat != stdStat || oldplpStat != plpStat)
         {
             oldSourceStat = currentTuner;
             if (sysStat == DVB_SYSTEM_1 && sourceType != CABLE){

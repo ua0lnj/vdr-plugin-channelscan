@@ -449,8 +449,7 @@ bool cSatTransponder::SetTransponderData(cChannel * c, int Code)
     dtp.SetSystem(system_);
     dtp.SetRollOff(rolloff_);
     dtp.SetPolarization(pol_);
-    if (streamId_)
-        dtp.SetStreamId(streamId_);
+    dtp.SetStreamId(streamId_);
     return c->SetTransponderData(Code, frequency_, symbolrate_, dtp.ToString('S'), true);
 }
 
@@ -582,8 +581,7 @@ char cSatTransponder::Polarization() const
     return pol_;
 };
 
-void
-cSatTransponder::SetStreamId(int strid)
+void cSatTransponder::SetStreamId(int strid)
 {
     streamId_ = strid;
 }
@@ -625,14 +623,18 @@ bool cTerrTransponder::SetTransponderData(cChannel * c, int Code)
     dtp.SetCoderateL(fec_l_);
     dtp.SetGuard(guard_);
     dtp.SetTransmission(transmission_);
-    if (streamId_)
-        dtp.SetStreamId(streamId_);
+    dtp.SetStreamId(streamId_);
     return c->SetTransponderData(type, frequency_, symbolrate_, dtp.ToString('T'), true); //
 }
 
 void cTerrTransponder::PrintData() const
 {
     printf("%d,%d,%d-%d\n", frequency_, symbolrate_, fec_l_, fec_h_);
+}
+
+void cTerrTransponder::SetStreamId(int strid)
+{
+    streamId_ = strid;
 }
 
 //----------- Class cCableTransponder -------------------------------
@@ -787,23 +789,23 @@ void cTransponders::Load(cScanParameters * scp)
         }
         else
         {                       // manual single transponder
-            int system = 0, streamId = 0;
+            int system = 0, streamId = 0, fec = 0;
 
             if (scp->type == SATS2)
             {
                 if (scp->system == DVB_SYSTEM_2){
-                   scp->fec = StatToS2Fec(scp->fec);
+                   fec = StatToS2Fec(scp->fec);
                 // TODO explain
-                } else scp->fec = StatToFec(scp->fec);
+                } else fec = StatToFec(scp->fec);
                 system = scp->system;
                 streamId = scp->streamId;
             }
             scp->modulation = StatToS2Mod(scp->modulation);
 
             DEBUG_TRANSPONDER(DBGT " Load single SatTransponderData(f:\"%d\", pol[%c] -- symbolRate  %d,  modulation %d  fec %d sys %d stream %d\n", scp->frequency, scp->polarization,
-             scp->symbolrate, scp->modulation, scp->fec, scp->system, scp->streamId);
+             scp->symbolrate, scp->modulation, fec, system, streamId);
 
-            cSatTransponder *t = new cSatTransponder(scp->frequency, scp->polarization, scp->symbolrate, scp->modulation, scp->fec, 0, system, streamId);
+            cSatTransponder *t = new cSatTransponder(scp->frequency, scp->polarization, scp->symbolrate, scp->modulation, fec, 0, system, streamId);
             //printf("%s:%i new cSatTransponder created with fec %i\n", __FILE__, __LINE__, scp->fec);
 
             fileName_ = TplFileName(sourceCode_);

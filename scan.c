@@ -87,10 +87,12 @@ cScan::cScan()
     foundNum = 0;
     nitScan = false;
     parameters = "";
+    foundMux = 0;
 
     nitFilter_ = NULL;
     PFilter = NULL;
     SFilter = NULL;
+    SMFilter = NULL;
     EFilter = NULL;
 }
 
@@ -354,6 +356,7 @@ int cScan::ScanServices(bool noSDT)
     const time_t  tt = time(NULL);
     time_t tt_;
     char *strDate;
+    foundMux = 0;
 
     cMenuChannelscan::scanState = ssGetChannels;
 #ifdef WITH_EIT
@@ -362,14 +365,18 @@ int cScan::ScanServices(bool noSDT)
 #endif
     PFilter = new PatFilter();
     SFilter = new SdtFilter(PFilter);
+    SMFilter = new SdtMuxFilter(PFilter);
+
     PFilter->SetSdtFilter(SFilter);
     PFilter->noSDT = noSDT;
+
     /* SAT>IP use Rid to assign frontend */
     if (scanParameter_.adapter > 200)
         SFilter->SetRid(scanParameter_.adapter - 200);
 
     device->AttachFilter(SFilter);
     device->AttachFilter(PFilter);
+    device->AttachFilter(SMFilter);
 #ifdef WITH_EIT
     device->AttachFilter(EFilter);
 #endif
@@ -381,6 +388,7 @@ int cScan::ScanServices(bool noSDT)
     // Heuristic: Delay scan timeout if Sids or Services withs PIDs are found
     tt_ = time(NULL);
     DEBUG_printf("%s beforeloop:%4.2fs:\n", __PRETTY_FUNCTION__, (float)difftime(tt_, tt));
+
     int i = 0;
     while (!PFilter->EndOfScan() && (
                                         /* (time(NULL) - start < SCAN_DELAY && cMenuChannelscan::scanning) || */
@@ -425,11 +433,14 @@ int cScan::ScanServices(bool noSDT)
     tt_ = time(NULL);
 
     if (SFilter->GetNumUsefulSid() == 0 && totalNum > 0) totalNum *= -1;
+    if (scanParameter_.streamId > -2) //tuner support mplp
+        foundMux = SMFilter->GetNumMux();
 
     DEBUG_printf("%s after GetFountNum() :%4.2fs:\n", __PRETTY_FUNCTION__, (float)difftime(tt_, tt));
 
     device->Detach(PFilter);
     device->Detach(SFilter);
+    device->Detach(SMFilter);
 #ifdef WITH_EIT
     device->Detach(EFilter);
 #endif
@@ -442,6 +453,9 @@ int cScan::ScanServices(bool noSDT)
     if (SFilter)
         delete SFilter;
     SFilter = NULL;
+    if (SMFilter)
+        delete SMFilter;
+    SMFilter = NULL;
     if (EFilter)
         delete EFilter;
     EFilter = NULL;
@@ -722,9 +736,10 @@ void cScan::ScanDVB_T(cTransponder * tp, cChannel * c)
 {
     int timeout = 1000;
     int retries = 0;
-    int response, n, m, s;
+    int response, n, m, s, p = 0;
     int frequency_orig = tp->Frequency();
     region = scanParameter_.region;
+    foundMux = 0;
 
     /* For Nit transponders */
     if (frequency_orig < 1000000)
@@ -754,6 +769,15 @@ void cScan::ScanDVB_T(cTransponder * tp, cChannel * c)
             tp->SetTransponderData(c, sourceCode);
             system = tp->System();
 
+mplp:        /* scan mplp transponders
+              * if SDT filter found some MUX, try change streamId from 0 to foundMux
+              * it can be works....if plp_id is 0,1,2,...
+              */
+            if ((scanParameter_.frequency < 5 || scanParameter_.streamId == NO_STREAM_ID_FILTER) && p)
+            {
+                (dynamic_cast < cTerrTransponder * >(tp))->SetStreamId(p);
+                tp->SetTransponderData(c, sourceCode);
+            }
             /* SAT>IP use Rid to assign frontend */
             if (scanParameter_.adapter > 200)
                 c->SetId(0, 0, 0, scanParameter_.adapter - 200);
@@ -795,9 +819,17 @@ void cScan::ScanDVB_T(cTransponder * tp, cChannel * c)
                DLOG(DBG "  ------ HAS LOCK ------\n");
                ScanServices(); //dtmb & isdb-t ??
                lastLocked = 1;
-               return;
             }
-            lastLocked = 0;
+            else
+                lastLocked = 0;
+
+            if (system == DVB_SYSTEM_2 && foundMux && p < foundMux)
+            {
+                p++;
+                goto mplp;
+            }
+            if(lastLocked)return;
+
             retries++;
         }
     }

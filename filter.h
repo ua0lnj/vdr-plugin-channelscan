@@ -142,6 +142,22 @@ cMutex mutex;
     void SetRid(int rid){Rid = rid;};
 };
 
+class SdtMuxFilter:public cFilter
+{
+    friend class PatFilter;
+  private:
+cMutex mutex;
+    int numMux;
+    int Mux[256];
+    cSectionSyncer sectionSyncer;
+    PatFilter *patFilter;
+  protected:
+    virtual void Process(u_short Pid, u_char Tid, const u_char * Data, int Length);
+  public:
+    SdtMuxFilter(PatFilter * PatFilter);
+    int GetNumMux(){return numMux;};
+    virtual void SetStatus(bool On);
+};
 
 #ifdef REELVDR
 #define MAXNITS 256
