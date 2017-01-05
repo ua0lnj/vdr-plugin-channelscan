@@ -159,29 +159,21 @@ cMutex mutex;
     virtual void SetStatus(bool On);
 };
 
-#ifdef REELVDR
-#define MAXNITS 256
-#endif
-
-#define MAXNETWORKNAME_CS 256
-
 
 class NitFilter:
 public cFilter
 {
   private:
+#if VDRVERSNUM < 20301
     class cNit
     {
       public:
         u_short networkId;
-        char name[MAXNETWORKNAME_CS];
+        char name[MAXNETWORKNAME];
         bool hasTransponder;
     };
-
+#endif
     cSectionSyncer sectionSyncer;
-    cNit nits[MAXNITS];
-    u_short networkId;
-    int numNits;
     unsigned int lastCount;
     volatile bool endofScan;
     volatile bool found_;
@@ -197,7 +189,6 @@ public cFilter
         return endofScan;
     };
     void Dump();
-    //void Copy();
     bool Found();
     int mode;
 };

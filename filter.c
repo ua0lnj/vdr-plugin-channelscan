@@ -186,8 +186,14 @@ cCaDescriptors::cCaDescriptors(int Source, int Transponder, int ServiceId, int P
 
 bool cCaDescriptors::operator==(const cCaDescriptors & arg) const
 {
+#if VDRVERSNUM < 20301
     cCaDescriptor *ca1 = caDescriptors.First();
     cCaDescriptor *ca2 = arg.caDescriptors.First();
+#else
+    const cCaDescriptor *ca1 = caDescriptors.First();
+    const cCaDescriptor *ca2 = arg.caDescriptors.First();
+#endif
+
     while (ca1 && ca2)
     {
         if (!(*ca1 == *ca2))
@@ -459,12 +465,20 @@ void PatFilter::Process(u_short Pid, u_char Tid, const u_char *Data, int Length)
         SwitchToNextPmtPid();
         return;
         }
+#if VDRVERSNUM < 20301
      if (!Channels.Lock(true, 10))
+#else
+     bool ChannelsModified = false;
+     cStateKey StateKey;
+     cChannels *Channels = cChannels::GetChannelsWrite(StateKey, 10);
+     if (!Channels)
+#endif
         return;
      PmtVersionChanged(Pid, pmt.getTableIdExtension(), pmt.getVersionNumber(), true);
      SwitchToNextPmtPid();
 
      cChannel *channel = NULL;
+#if VDRVERSNUM < 20301
      if (cSource::IsType(Source(), 'I'))
      {
           for (cChannel *cChannel = Channels.First(); cChannel; cChannel = Channels.Next(cChannel))
@@ -476,9 +490,23 @@ void PatFilter::Process(u_short Pid, u_char Tid, const u_char *Data, int Length)
                }
            }
         }
-    else
-     channel = Channels.GetByServiceID(Source(), Transponder(), pmt.getServiceId());
-
+     else
+        channel = Channels.GetByServiceID(Source(), Transponder(), pmt.getServiceId());
+#else
+     if (cSource::IsType(Source(), 'I'))
+     {
+          for (cChannel *cChannel = Channels->First(); cChannel; cChannel = Channels->Next(cChannel))
+           {
+               if (!strcmp(cChannel->Parameters(), Channel()->Parameters()))
+               {
+                  channel = cChannel;
+                  break;
+               }
+           }
+     }
+     else
+        channel = Channels->GetByServiceID(Source(), Transponder(), pmt.getServiceId());
+#endif
      if (channel) {
         SI::CaDescriptor *d;
         cCaDescriptors *CaDescriptors = new cCaDescriptors(channel->Source(), channel->Transponder(), channel->Sid(), Pid);
@@ -706,18 +734,26 @@ void PatFilter::Process(u_short Pid, u_char Tid, const u_char *Data, int Length)
                    }
                }
             }
-
+#if VDRVERSNUM < 20301
            channel->SetPids(Vpid, Ppid, Vtype, Apids, Atypes, ALangs, Dpids, Dtypes, DLangs, Spids, SLangs, Tpid);
            channel->SetCaIds(CaDescriptors->CaIds());
            channel->SetSubtitlingDescriptors(SubtitlingTypes, CompositionPageIds, AncillaryPageIds);
-
            channel->SetCaDescriptors(CaDescriptorHandler.AddCaDescriptors(CaDescriptors));
-
+#else
+           ChannelsModified |= channel->SetPids(Vpid, Ppid, Vtype, Apids, Atypes, ALangs, Dpids, Dtypes, DLangs, Spids, SLangs, Tpid);
+           ChannelsModified |= channel->SetCaIds(CaDescriptors->CaIds());
+           ChannelsModified |= channel->SetSubtitlingDescriptors(SubtitlingTypes, CompositionPageIds, AncillaryPageIds);
+           ChannelsModified |= channel->SetCaDescriptors(CaDescriptorHandler.AddCaDescriptors(CaDescriptors));
+#endif
             num++;
             lastFound = time(NULL);
 
         }
+#if VDRVERSNUM < 20301
      Channels.Unlock();
+#else
+     StateKey.Remove(ChannelsModified);
+#endif
      }
   if (timer.TimedOut()) {
      if (pmtIndex >= 0)
@@ -725,6 +761,7 @@ void PatFilter::Process(u_short Pid, u_char Tid, const u_char *Data, int Length)
      SwitchToNextPmtPid();
      timer.Set(PMT_SCAN_TIMEOUT);
      }
+
     DBGPAT("PAT sdtfinished %d nosdt %d numpmt %d num %d\n",sdtfinished,noSDT,numPmtEntries,num);
     if ((sdtfinished || (noSDT && numPmtEntries>0)) && num >= numPmtEntries)
     {
@@ -780,29 +817,62 @@ void SdtFilter::Process(u_short Pid, u_char Tid, const u_char * Data, int Length
 
     if (!sectionSyncer.Sync(sdt.getVersionNumber(), sdt.getSectionNumber(), sdt.getLastSectionNumber()))
         return;
+#if VDRVERSNUM < 20301
     if (!Channels.Lock(true, 10))
+    {
+#else
+    bool ChannelsModified = false;
+    cStateKey StateKey;
+    cChannels *Channels = cChannels::GetChannelsWrite(StateKey, 10);
+
+    if (!Channels)
+    {
+        sectionSyncer.Repeat(); // let's not miss any section of the SDT
+#endif
         return;
+    }
     SI::SDT::Service SiSdtService;
     for (SI::Loop::Iterator it; sdt.serviceLoop.getNext(SiSdtService, it);)
     {
         cChannel *channel = NULL;
+#if VDRVERSNUM < 20301
         if (cSource::IsType(Source(), 'I'))
         {
-           for (cChannel *cChannel = Channels.First(); cChannel; cChannel = Channels.Next(cChannel))
-           {
-               if (!strcmp(cChannel->Parameters(), Channel()->Parameters()))
-               {
-                  channel = cChannel;
-                  break;
-               }
-           }
+            for (cChannel *cChannel = Channels.First(); cChannel; cChannel = Channels.Next(cChannel))
+            {
+                if (!strcmp(cChannel->Parameters(), Channel()->Parameters()))
+                {
+                    channel = cChannel;
+                    break;
+                }
+            }
         }
         else
-           channel = Channels.GetByServiceID(Source(), Transponder(), SiSdtService.getServiceId());
+            channel = Channels.GetByServiceID(Source(), Transponder(), pmt.getServiceId());
 
-           if (!channel)
-              channel = Channels.GetByChannelID(tChannelID(Source(), 0, Transponder(), SiSdtService.getServiceId()));
+        if (!channel)
+            channel = Channels.GetByChannelID(tChannelID(Source(), 0, Transponder(), SiSdtService.getServiceId()));
+#else
+        if (cSource::IsType(Source(), 'I'))
+        {
+            for (cChannel *cChannel = Channels->First(); cChannel; cChannel = Channels->Next(cChannel))
+            {
+                if (!strcmp(cChannel->Parameters(), Channel()->Parameters()))
+                {
+                    channel = cChannel;
+                    break;
+                }
+            }
+        }
+        else
+            channel = Channels->GetByServiceID(Source(), Transponder(), SiSdtService.getServiceId());
 
+        if (!channel)
+            channel = Channels->GetByChannelID(tChannelID(Source(), 0, Transponder(), SiSdtService.getServiceId()));
+
+        if (channel)
+            channel->SetSeen();
+#endif
         cLinkChannels *LinkChannels = NULL;
         SI::Descriptor * d;
 
@@ -864,6 +934,12 @@ void SdtFilter::Process(u_short Pid, u_char Tid, const u_char * Data, int Length
                             sd->serviceName.getText(NameBuf, ShortNameBuf, sizeof(NameBuf), sizeof(ShortNameBuf));
                             char *pn = compactspace(NameBuf);
                             char *ps = compactspace(ShortNameBuf);
+                            //for stupid providers....
+                            if (!strlen(pn))
+                            {
+                                const char *name = "NO NAME";
+                                strcpy(NameBuf, name);
+                            }
                             if (!*ps && cSource::IsCable(Source()))
                             {
                                 // Some cable providers don't mark short channel names according to the
@@ -916,7 +992,7 @@ void SdtFilter::Process(u_short Pid, u_char Tid, const u_char * Data, int Length
                             if (channel)
                             {
                                 DEBUG_SDT(DBGSDT "---------------------- Channelscan Add Chanel pn %s ps %s pp %s --------------\n", pn, ps, pp);
-
+#if VDRVERSNUM < 20301
                                 channel->SetId(sdt.getOriginalNetworkId(), sdt.getTransportStreamId(), SiSdtService.getServiceId(), channel->Rid());
 
                                 //if (Setup.UpdateChannels >= 1)
@@ -930,7 +1006,21 @@ void SdtFilter::Process(u_short Pid, u_char Tid, const u_char * Data, int Length
                             else if (*pn)
                             {
                                 channel = Channels.NewChannel(Channel(), pn, ps, pp, sdt.getOriginalNetworkId(), sdt.getTransportStreamId(), SiSdtService.getServiceId(), Rid);
+#else
+                                ChannelsModified |= channel->SetId(Channels, sdt.getOriginalNetworkId(), sdt.getTransportStreamId(), SiSdtService.getServiceId(), channel->Rid());
 
+                                //if (Setup.UpdateChannels >= 1)
+                                ChannelsModified |= channel->SetName(pn, ps, pp);
+                                // Using SiSdtService.getFreeCaMode() is no good, because some
+                                // tv stations set this flag even for non-encrypted channels :-(
+                                // The special value 0xFFFF was supposed to mean "unknown encryption"
+                                // and would have been overwritten with real CA values later:
+                                // channel->SetCa(SiSdtService.getFreeCaMode() ? 0xFFFF : 0);
+                            }
+                            else if (*pn)
+                            {
+                                channel = Channels->NewChannel(Channel(), pn, ps, pp, sdt.getOriginalNetworkId(), sdt.getTransportStreamId(), SiSdtService.getServiceId(), Rid);
+#endif
                                 patFilter->Trigger(SiSdtService.getServiceId());
                                 if (SiSdtService.getServiceId() == 0x12)
                                 {
@@ -948,6 +1038,7 @@ void SdtFilter::Process(u_short Pid, u_char Tid, const u_char * Data, int Length
                     SI::NVODReferenceDescriptor::Service Service;
                     for (SI::Loop::Iterator it; nrd->serviceLoop.getNext(Service, it);)
                     {
+#if VDRVERSNUM < 20301
                         cChannel *link = Channels.GetByChannelID(tChannelID(Source(),
                                                                             Service.getOriginalNetworkId(),
                                                                             Service.getTransportStream(),
@@ -959,6 +1050,19 @@ void SdtFilter::Process(u_short Pid, u_char Tid, const u_char * Data, int Length
 
                             sid[numSid++] = SiSdtService.getServiceId();
                             link = Channels.NewChannel(Channel(), "NVOD", "", "", Service.getOriginalNetworkId(), Service.getTransportStream(), Service.getServiceId());
+#else
+                        cChannel *link = Channels->GetByChannelID(tChannelID(Source(),
+                                                                            Service.getOriginalNetworkId(),
+                                                                            Service.getTransportStream(),
+                                                                            Service.getServiceId()));
+
+                        if (!link)
+                        {
+                            usefulSid[numSid] = 0;
+
+                            sid[numSid++] = SiSdtService.getServiceId();
+                            link = Channels->NewChannel(Channel(), "NVOD", "", "", Service.getOriginalNetworkId(), Service.getTransportStream(), Service.getServiceId());
+#endif
                             patFilter->Trigger(SiSdtService.getServiceId());
                         }
 
@@ -978,13 +1082,21 @@ void SdtFilter::Process(u_short Pid, u_char Tid, const u_char * Data, int Length
         if (LinkChannels)
         {
             if (channel)
+#if VDRVERSNUM < 20301
                 channel->SetLinkChannels(LinkChannels);
+#else
+                ChannelsModified |= channel->SetLinkChannels(LinkChannels);
+#endif
             else
                 delete LinkChannels;
         }
     }
-    Channels.Unlock();
 
+#if VDRVERSNUM < 20301
+     Channels.Unlock();
+#else
+     StateKey.Remove(ChannelsModified);
+#endif
     if (sdt.getSectionNumber() == sdt.getLastSectionNumber())
     {
         patFilter->SdtFinished();
@@ -1051,6 +1163,9 @@ void SdtMuxFilter::Process(u_short Pid, u_char Tid, const u_char * Data, int Len
 
 
 // --- NitFilter  ---------------------------------------------------------
+/* Nitscan not add channels.
+ * Nitscan add new transponders.
+ */
 
 #ifdef DBG
 # undef DBG
@@ -1059,15 +1174,13 @@ void SdtMuxFilter::Process(u_short Pid, u_char Tid, const u_char * Data, int Len
 //#define DEBUG_NIT(format, args...) printf (format, ## args)
 #define DEBUG_NIT(format, args...)
 
+#define MAXNETWORKNAME Utf8BufSize(256)
 
 NitFilter::NitFilter()
 {
-    numNits = 0;
-    networkId = 0;
     lastCount = 0;
     found_ = endofScan = false;
     Set(0x10, 0x40);            // NIT
-    //Set(0x10, 0x41);  // other NIT
 #ifdef REELVDR
     Set(0x1fff, 0x42);          // decrease latency
 #endif
@@ -1079,8 +1192,6 @@ NitFilter::NitFilter()
 void NitFilter::SetStatus(bool On)
 {
     cFilter::SetStatus(true);
-    numNits = 0;
-    networkId = 0;
     sectionSyncer.Reset();
     lastCount = 0;
     found_ = endofScan = false;
@@ -1099,24 +1210,14 @@ bool NitFilter::Found()
 
 void NitFilter::Process(u_short Pid, u_char Tid, const u_char * Data, int Length)
 {
-    SI::NIT nit(Data, false);
-    if (!nit.CheckCRCAndParse())
-        return;
-
-    // TODO
-    // if versionsMap(nit.getVersionNumber()) == false)
-    //  return;
-
-
-    DEBUG_NIT(DBGNIT " ++ %s NIT ID  %d\n", __PRETTY_FUNCTION__, nit.getNetworkId());
-    //DEBUG_NIT(DBGNIT " ++ Version %d \n", nit.getVersionNumber());
-    DEBUG_NIT(DBGNIT " ++ SectionNumber  %d\n", nit.getSectionNumber());
-    DEBUG_NIT(DBGNIT " ++ LastSectionNumber  %d\n", nit.getLastSectionNumber());
-    DEBUG_NIT(DBGNIT " ++ moreThanOneSection %d\n", nit.moreThanOneSection());
-    DEBUG_NIT(DBGNIT " ++ num Nits  %d\n", numNits);
+  SI::NIT nit(Data, false);
+  if (!nit.CheckCRCAndParse())
+     return;
+  if (!sectionSyncer.Sync(nit.getVersionNumber(), nit.getSectionNumber(), nit.getLastSectionNumber()))
+     return;
 
     int getTransponderNum = 0;
-    //
+
     // return if we have seen the Table already
     int cnt = ++TblVersions[nit.getVersionNumber()];
     if (cnt > nit.getLastSectionNumber() + 1)
@@ -1125,311 +1226,253 @@ void NitFilter::Process(u_short Pid, u_char Tid, const u_char * Data, int Length
         endofScan = true;
         return;
     }
-    // Some broadcasters send more than one NIT, with no apparent way of telling which
-    // one is the right one to use. This is an attempt to find the NIT that contains
-    // the transponder it was transmitted on and use only that one:
-    //int transportstreamId = SI::NIT::TransportStream::getTransportStreamId();
     found_ = endofScan = false;
-    bool insert = false;
-    int ThisNIT = -1;
-//    if (!networkId)
-    if (true)
-    {
-        for (int i = 0; i < numNits; i++)
-        {
-            DEBUG_NIT(DBGNIT " ++ num Nits  %d\n", numNits);
-            if (nits[i].networkId == nit.getNetworkId())
-            {
-                if (nit.getSectionNumber() == 0)
-                {
-                    // all NITs have passed by
-                    for (int j = 0; j < numNits; j++)
-                    {
-                        DEBUG_NIT(DBGNIT " --  nits[%d] has Transponder ? %s \n", j, nits[j].hasTransponder ? "YES" : "NO");
-                        if (nits[j].hasTransponder)
-                        {
-                            networkId = nits[j].networkId;
-                            DEBUG_NIT(DBGNIT " take  NIT with network ID %d\n", networkId);
-                            //XXX what if more than one NIT contains this transponder???
-                            break;
-                        }
-                    }
-                    if (!networkId)
-                    {
-                        DEBUG_NIT(DBGNIT "none of the NITs contains transponder %d\n", Transponder());
-                        return;
-                    }
+
+// set 1 to debug
+  if (0) {
+     char NetworkName[MAXNETWORKNAME] = "";
+     SI::Descriptor *d;
+     for (SI::Loop::Iterator it; (d = nit.commonDescriptors.getNext(it)); ) {
+         switch (d->getDescriptorTag()) {
+           case SI::NetworkNameDescriptorTag: {
+                SI::NetworkNameDescriptor *nnd = (SI::NetworkNameDescriptor *)d;
+                nnd->name.getText(NetworkName, MAXNETWORKNAME);
                 }
-                else
-                {
-                    DEBUG_NIT(DBGNIT " ----------- ThisNIT: %d --------------  \n", i);
-                    ThisNIT = i;
-                    break;
-                }
-            }
-        }
-        if (!networkId && ThisNIT < 0 && numNits < MAXNITS)
-        {
-            if (nit.getSectionNumber() == 0)
-            {
-                *nits[numNits].name = 0;
-                SI::Descriptor * d;
-                //  DEBUG_NIT(DBGNIT" INFO [nit] ----------- loop common descriptors:  --------------  \n");
+                break;
+           default: ;
+           }
+         delete d;
+         }
+     DEBUG_NIT(DBGNIT ": %02X %2d %2d %2d %s %d %d '%s'\n", Tid, nit.getVersionNumber(), nit.getSectionNumber(), nit.getLastSectionNumber(), *cSource::ToString(Source()), nit.getNetworkId(), Transponder(), NetworkName);
+     }
 
-                for (SI::Loop::Iterator it; (d = nit.commonDescriptors.getNext(it));)
-                {
-                    switch (d->getDescriptorTag())
-                    {
-                    case SI::NetworkNameDescriptorTag:
-                        {
-                            SI::NetworkNameDescriptor * nnd = (SI::NetworkNameDescriptor *) d;
-                            nnd->name.getText(nits[numNits].name, MAXNETWORKNAME_CS);
-                            DEBUG_NIT(DBGNIT " ----------- Get Name %s   --------------  \n", nits[numNits].name);
-                        }
-                        break;
-                    default:;
-                    }
-                    delete d;
-                }
-                nits[numNits].networkId = nit.getNetworkId();
-                nits[numNits].hasTransponder = false;
-                DEBUG_NIT(DBGNIT " ---- NIT[%d] ID: %5d Proivider '%s'\n", numNits, nits[numNits].networkId, nits[numNits].name);
+  sectionSeen_[nit.getSectionNumber()]++;
+#if VDRVERSNUM >= 20301
+  cStateKey StateKey;
+  cChannels *Channels = cChannels::GetChannelsWrite(StateKey, 10);
+  if (!Channels) {
+     sectionSyncer.Repeat(); // let's not miss any section of the NIT
+     return;
+     }
+  bool ChannelsModified = false;
+#endif
 
-                ThisNIT = numNits;
-                numNits++;
-            }
-        }
-    }
-    else if (networkId != nit.getNetworkId())
-    {
-        DEBUG_NIT(DBGNIT "found !!!! OTHER  NIT !!!!!  %d previos NIT %d \n", nit.getNetworkId(), networkId);
-        return; // ignore all other NITs
-    }
-    else if (!sectionSyncer.Sync(nit.getVersionNumber(), nit.getSectionNumber(), nit.getLastSectionNumber()))
-        return;
+  SI::NIT::TransportStream ts;
+  for (SI::Loop::Iterator it; nit.transportStreamLoop.getNext(ts, it); ) {
 
-    sectionSeen_[nit.getSectionNumber()]++;
+      DEBUG_NIT(DBGNIT " -- found TS_ID %d\n",  ts.getTransportStreamId());
 
-    //DEBUG_NIT(DBGNIT " -- SectionNumber %d   \n", nit.getSectionNumber());
+      SI::Descriptor *d;
 
-    SI::NIT::TransportStream ts;
-    for (SI::Loop::Iterator it; nit.transportStreamLoop.getNext(ts, it);)
-    {
-        insert = false;
-        DEBUG_NIT(DBGNIT " -- found TS_ID %d\n",  ts.getTransportStreamId());
-
-        SI::Descriptor * d;
-
-        SI::Loop::Iterator it2;
-        SI::FrequencyListDescriptor * fld = (SI::FrequencyListDescriptor *) ts.transportStreamDescriptors.getNext(it2, SI::FrequencyListDescriptorTag);
-        int NumFrequencies = fld ? fld->frequencies.getCount() + 1 : 1;
-        int Frequencies[NumFrequencies];
-        if (fld)
-        {
-            int ct = fld->getCodingType();
-            if (ct > 0)
-            {
-                int n = 1;
-                for (SI::Loop::Iterator it3; fld->frequencies.hasNext(it3);)
-                {
-                    int f = fld->frequencies.getNext(it3);
-                    switch (ct)
-                    {
-                    case 1:
-                        f = BCD2INT(f) / 100;
-                        break;
-                    case 2:
-                        f = BCD2INT(f) / 10;
-                        break;
-                    case 3:
-                        f = f * 10;
-                        break;
-                    }
-                    Frequencies[n++] = f;
+      SI::Loop::Iterator it2;
+      SI::FrequencyListDescriptor *fld = (SI::FrequencyListDescriptor *)ts.transportStreamDescriptors.getNext(it2, SI::FrequencyListDescriptorTag);
+      int NumFrequencies = fld ? fld->frequencies.getCount() + 1 : 1;
+      int Frequencies[NumFrequencies];
+      if (fld) {
+         int ct = fld->getCodingType();
+         if (ct > 0) {
+            int n = 1;
+            for (SI::Loop::Iterator it3; fld->frequencies.hasNext(it3); ) {
+                int f = fld->frequencies.getNext(it3);
+                switch (ct) {
+                  case 1: f = BCD2INT(f) / 100; break;
+                  case 2: f = BCD2INT(f) / 10; break;
+                  case 3: f = f * 10;  break;
+                  default: ;
+                  }
+                Frequencies[n++] = f;
+                DEBUG_NIT(DBGNIT "    Frequencies[%d] = %d\n", n - 1, f);
                 }
             }
-            else
-                NumFrequencies = 1;
-        }
-        delete fld;
+         else
+            NumFrequencies = 1;
+         }
+      delete fld;
 
-        int streamId = 0;
-        int system = DVB_SYSTEM_1;
-        int t2systemId = 0;
+        int StreamId = 0;
+        int System = DVB_SYSTEM_1;
+        int T2SystemId = 0;
         int Bandwidth;
 
-        for (SI::Loop::Iterator it2; (d = ts.transportStreamDescriptors.getNext(it2));)
-        {
-            switch (d->getDescriptorTag())
-            {
-            case SI::S2SatelliteDeliverySystemDescriptorTag:
-                {
-                    if (mode != SATS2 && mode != SAT) break;// to prevent incorrect nit
-                    SI::S2SatelliteDeliverySystemDescriptor *sd = (SI::S2SatelliteDeliverySystemDescriptor *)d;
-                    system = DVB_SYSTEM_2;
-                    streamId = sd->getInputStreamIdentifier();
-
-                }
-            case SI::SatelliteDeliverySystemDescriptorTag:
-                {
-                    if (mode != SAT && mode != SATS2) break; // to prevent incorrect nit
-                    SI::SatelliteDeliverySystemDescriptor * sd = (SI::SatelliteDeliverySystemDescriptor *) d;
-                    //int Source = cSource::FromData(cSource::stSat, BCD2INT(sd->getOrbitalPosition()), sd->getWestEastFlag());
-                    int Frequency = Frequencies[0] = BCD2INT(sd->getFrequency()) / 100;
-                    getTransponderNum++;
-                    //DEBUG_NIT(DBGNIT  "  -- %s:%d DEBUG [nit]:  Get  Sat DSDT f: %d --   num %d   \n", __FILE__, __LINE__, Frequency, getTransponderNum++);
-                    static char Polarizations[] = { 'h', 'v', 'l', 'r' };
-                    char Polarization = Polarizations[sd->getPolarization()];
-
-
-                    // orig
-                    /* static int CodeRates[] = { FEC_NONE, FEC_1_2, FEC_2_3, FEC_3_4, FEC_4_5, FEC_5_6, FEC_7_8, FEC_8_9,
-                       FEC_3_5, FEC_9_10, FEC_AUTO, FEC_AUTO, FEC_AUTO, FEC_AUTO, FEC_AUTO, FEC_AUTO, FEC_NONE }; */
-
-                    // same as in channels.c
-                    static int CodeRates[] = { FEC_NONE, FEC_1_2, FEC_2_3, FEC_3_4, FEC_4_5, FEC_5_6, 
-                                               FEC_6_7, FEC_7_8, FEC_8_9,    // DVB-S
-                                               FEC_3_5, FEC_9_10, FEC_AUTO, 
-                                               FEC_AUTO, FEC_AUTO, FEC_AUTO, FEC_AUTO, FEC_NONE
-                                             };          // DVB-S2
-
-                    int CodeRate = CodeRates[sd->getFecInner()];
-                    int SymbolRate = BCD2INT(sd->getSymbolRate()) / 10;
-                    static int Rolloffs[] = { ROLLOFF_35, ROLLOFF_25, ROLLOFF_20, ROLLOFF_AUTO };
-
-                    static int Modulations[] = { QAM_AUTO, QPSK, PSK_8, QAM_16 };
-
-                    int Modulation = Modulations[sd->getModulationType()];
-                    int RollOff = sd->getModulationSystem() ? Rolloffs[sd->getRollOff()] : ROLLOFF_AUTO;
-
+      for (SI::Loop::Iterator it2; (d = ts.transportStreamDescriptors.getNext(it2)); ) {
+          switch (d->getDescriptorTag()) {
+            case SI::S2SatelliteDeliverySystemDescriptorTag: {
+                   if (mode != SATS2 && mode != SAT) break;// to prevent incorrect nit
+                           SI::S2SatelliteDeliverySystemDescriptor *sd = (SI::S2SatelliteDeliverySystemDescriptor *)d;
+                           System = DVB_SYSTEM_2;
+                           StreamId = sd->getInputStreamIdentifier();
+                 }
+                 break;
+            case SI::SatelliteDeliverySystemDescriptorTag: {
+                   if (mode != SATS2 && mode != SAT) break;// to prevent incorrect nit
+                 SI::SatelliteDeliverySystemDescriptor *sd = (SI::SatelliteDeliverySystemDescriptor *)d;
+                 int Source = cSource::FromData(cSource::stSat, BCD2INT(sd->getOrbitalPosition()), sd->getWestEastFlag());
+                 int Frequency = Frequencies[0] = BCD2INT(sd->getFrequency()) / 100;
+                 static char Polarizations[] = { 'H', 'V', 'L', 'R' };
+                 char Polarization = Polarizations[sd->getPolarization()];
+                 static int CodeRates[] = { FEC_NONE, FEC_1_2, FEC_2_3, FEC_3_4, FEC_5_6, FEC_7_8, FEC_8_9, FEC_3_5, FEC_4_5, FEC_9_10, FEC_AUTO, FEC_AUTO, FEC_AUTO, FEC_AUTO, FEC_AUTO, FEC_NONE };
+                 int CoderateH = CodeRates[sd->getFecInner()];
+                 static int Modulations[] = { QAM_AUTO, QPSK, PSK_8, QAM_16 };
+                 int Modulation = Modulations[sd->getModulationType()];
+                 if (System == DVB_SYSTEM_1 && sd->getModulationSystem()) System = DVB_SYSTEM_2;
+                 static int RollOffs[] = { ROLLOFF_35, ROLLOFF_25, ROLLOFF_20, ROLLOFF_AUTO };
+                 int RollOff = sd->getModulationSystem() ? RollOffs[sd->getRollOff()] : ROLLOFF_AUTO;
+                 int SymbolRate = BCD2INT(sd->getSymbolRate()) / 10;
+                 getTransponderNum++;
+                 found_=true;
                     for (int n = 0; n < NumFrequencies; n++)
                     {
 
-                        cChannel *Channel = new cChannel;
-                        Channel->SetId(ts.getOriginalNetworkId(), ts.getTransportStreamId(), 0, 0);
-                        printf("# %d Mhz  TSID %5d  orig NIT %6d \n", Frequencies[n], ts.getTransportStreamId(), ts.getOriginalNetworkId());
+//                        cChannel *Channel = new cChannel;
+//                        Channel->SetId(ts.getOriginalNetworkId(), ts.getTransportStreamId(), 0, 0);
+//                        printf("# %d Mhz  TSID %5d  orig NIT %6d \n", Frequencies[n], ts.getTransportStreamId(), ts.getOriginalNetworkId());
+                        if(Frequencies[n] == 0)continue;
+                        cSatTransponder *t = new cSatTransponder(Frequencies[n], Polarization,
+                                                        SymbolRate, Modulation, CoderateH, RollOff, System, StreamId);
 
-                        cSatTransponder *t = new cSatTransponder(Frequency, Polarization,
-                                                                 SymbolRate, Modulation, CodeRate, RollOff, system ? system : sd->getModulationSystem(), streamId);
 
                         if (!t)
                         {
-                            esyslog("FatalError new cSatTransponder %d failed\n", Frequency);
+                            esyslog("FatalError new cSatTransponder %d failed\n", Frequencies[n]);
                         }
                         else
                         {
-                            mapRet ret = transponderMap.insert(make_pair(Frequency, t));
+                            mapRet ret = transponderMap.insert(make_pair(Frequencies[n], t));
                             if (ret.second)
-                                printf(" New transponder f: %d  p: %c sr: %d (mod_si: %d  mod: %d, ro %d )    \n", Frequency, Polarization, SymbolRate, sd->getModulationType(), Modulation, RollOff);
+                                esyslog(" New transponder n %d f: %d  p: %c sr: %d (mod_si: %d  mod: %d, ro %d )    \n", n, Frequencies[n],
+                                                      Polarization, SymbolRate, sd->getModulationType(), Modulation, RollOff);
+                            else
+                                delete t;
+                        }
+                    }
+                 }
+                 break;
+            case SI::CableDeliverySystemDescriptorTag: {
+                 if (mode != CABLE) break; // to prevent incorrect nit
+                 SI::CableDeliverySystemDescriptor *sd = (SI::CableDeliverySystemDescriptor *)d;
+                 int Source = cSource::FromData(cSource::stCable);
+                 int Frequency = Frequencies[0] = BCD2INT(sd->getFrequency()) / 10;
+                 //XXX FEC_outer???
+//                 static int CodeRates[] = { FEC_NONE, FEC_1_2, FEC_2_3, FEC_3_4, FEC_5_6, FEC_7_8, FEC_8_9, FEC_3_5, FEC_4_5, FEC_9_10, FEC_AUTO, FEC_AUTO, FEC_AUTO, FEC_AUTO, FEC_AUTO, FEC_NONE };
+//                 int CoderateH = CodeRates[sd->getFecInner()];
+                 static int Modulations[] = { QPSK, QAM_16, QAM_32, QAM_64, QAM_128, QAM_256, QAM_AUTO };
+                 int Modulation = Modulations[min(sd->getModulation(), 6)];
+                 int SymbolRate = BCD2INT(sd->getSymbolRate()) / 10;
+                 getTransponderNum++;
+                 found_=true;
+                    for (int n = 0; n < NumFrequencies; n++)
+                    {
+
+//                        cChannel *Channel = new cChannel;
+//                        Channel->SetId(ts.getOriginalNetworkId(), ts.getTransportStreamId(), 0, 0);
+//                        printf("# %d Mhz  TSID %5d  orig NIT %6d \n", Frequencies[n], ts.getTransportStreamId(), ts.getOriginalNetworkId());
+                        if(Frequencies[n] == 0)continue;
+                        cCableTransponder *t = new cCableTransponder(0, Frequencies[n], SymbolRate, Modulation);
+                        if (!t)
+                        {
+                            esyslog("FatalError new cCableTransponder %d failed\n", Frequencies[n]);
+                        }
+                        else
+                        {
+                            mapRet ret = transponderMap.insert(make_pair(Frequencies[n], t));
+                            if (ret.second)
+                                esyslog(" New transponder f: %d \n", Frequencies[n]);
                             else
                                 delete t;
                         }
                     }
                 }
                 break;
-            case SI::ExtensionDescriptorTag:
-                {
-                    SI::ExtensionDescriptor *sd = (SI::ExtensionDescriptor *)d;
-                    switch (sd->getExtensionDescriptorTag())
-                        {
-                        case SI::T2DeliverySystemDescriptorTag:
-                            {
-esyslog("nit terr2\n");
-                                if (mode != TERR && mode != TERR2) break; // to prevent incorrect nit
-                                SI::T2DeliverySystemDescriptor *td = (SI::T2DeliverySystemDescriptor *)d;
-                                system =  DVB_SYSTEM_2;
-                                streamId = td->getPlpId();
-//                                t2systemId =td->getT2SystemId();
-                                if (td->getExtendedDataFlag())
-                                {
-//                                  dtp.SetSisoMiso(td->getSisoMiso());
-                                    static int T2Bandwidths[] = { 8000000, 7000000, 6000000, 5000000, 10000000, 1712000, 0, 0 };
-                                    Bandwidth = T2Bandwidths[td->getBandwidth()];
-                                }
+            case SI::ExtensionDescriptorTag: {
+                 SI::ExtensionDescriptor *sd = (SI::ExtensionDescriptor *)d;
+                 switch (sd->getExtensionDescriptorTag()) {
+                   case SI::T2DeliverySystemDescriptorTag: {
+                            if (mode != TERR && mode != TERR2) break; // to prevent incorrect nit
+                                  SI::T2DeliverySystemDescriptor *td = (SI::T2DeliverySystemDescriptor *)d;
+                                  System = DVB_SYSTEM_2;
+                                  StreamId = td->getPlpId();
+                                  T2SystemId = td->getT2SystemId();
+                                  if (td->getExtendedDataFlag()) {
+//                                     dtp.SetSisoMiso(td->getSisoMiso());
+                                     static int T2Bandwidths[] = { 8000000, 7000000, 6000000, 5000000, 10000000, 1712000, 0, 0 };
+                                     Bandwidth = T2Bandwidths[td->getBandwidth()];
+//                                     static int T2GuardIntervals[] = { GUARD_INTERVAL_1_32, GUARD_INTERVAL_1_16, GUARD_INTERVAL_1_8, GUARD_INTERVAL_1_4, GUARD_INTERVAL_1_128, GUARD_INTERVAL_19_128, GUARD_INTERVAL_19_256, 0 };
+//                                     dtp.SetGuard(T2GuardIntervals[td->getGuardInterval()]);
+//                                     static int T2TransmissionModes[] = { TRANSMISSION_MODE_2K, TRANSMISSION_MODE_8K, TRANSMISSION_MODE_4K, TRANSMISSION_MODE_1K, TRANSMISSION_MODE_16K, TRANSMISSION_MODE_32K, TRANSMISSION_MODE_AUTO, TRANSMISSION_MODE_AUTO };
+//                                     dtp.SetTransmission(T2TransmissionModes[td->getTransmissionMode()]);
+                                     //TODO add parsing of frequencies
+                                     }
 
-                            }
-                            break;
-                        default:;
                         }
-                }
-            case SI::TerrestrialDeliverySystemDescriptorTag:
-                {
-                    if (mode != TERR && mode != TERR2 && mode != DMB_TH && mode != ISDB_T) break; // to prevent incorrect nit
-                    SI::TerrestrialDeliverySystemDescriptor *sd = (SI::TerrestrialDeliverySystemDescriptor *)d;
-                    int Frequency = Frequencies[0] = sd->getFrequency() * 10;
-                    getTransponderNum++;
-                    static int Bandwidths[] = { 8000000, 7000000, 6000000, 5000000, 0, 0, 0, 0 };
-                    if (!system) Bandwidth = Bandwidths[sd->getBandwidth()];
-esyslog("nit terr\n");
+                        break;
+                   default: ;
+                   }
+                 }
+                 break;
+            case SI::TerrestrialDeliverySystemDescriptorTag: {
+                 if (mode != TERR && mode != TERR2) break; // to prevent incorrect nit
+                 SI::TerrestrialDeliverySystemDescriptor *sd = (SI::TerrestrialDeliverySystemDescriptor *)d;
+
+                 int Source = cSource::FromData(cSource::stTerr);
+                 int Frequency = Frequencies[0] = sd->getFrequency() * 10;
+                 static int Bandwidths[] = { 8000000, 7000000, 6000000, 5000000, 0, 0, 0, 0 };
+                 if (System == DVB_SYSTEM_1) Bandwidth = Bandwidths[sd->getBandwidth()];
+//                 static int Constellations[] = { QPSK, QAM_16, QAM_64, QAM_AUTO };
+//                 dtp.SetModulation(Constellations[sd->getConstellation()]);
+//                 dtp.SetSystem(DVB_SYSTEM_1);
+//                 static int Hierarchies[] = { HIERARCHY_NONE, HIERARCHY_1, HIERARCHY_2, HIERARCHY_4, HIERARCHY_AUTO, HIERARCHY_AUTO, HIERARCHY_AUTO, HIERARCHY_AUTO };
+//                 dtp.SetHierarchy(Hierarchies[sd->getHierarchy()]);
+//                 static int CodeRates[] = { FEC_1_2, FEC_2_3, FEC_3_4, FEC_5_6, FEC_7_8, FEC_AUTO, FEC_AUTO, FEC_AUTO };
+//                 CoderateH = CodeRates[sd->getCodeRateHP()];
+//                 dtp.SetCoderateL(CodeRates[sd->getCodeRateLP()]);
+//                 static int GuardIntervals[] = { GUARD_INTERVAL_1_32, GUARD_INTERVAL_1_16, GUARD_INTERVAL_1_8, GUARD_INTERVAL_1_4 };
+//                 dtp.SetGuard(GuardIntervals[sd->getGuardInterval()]);
+//                 static int TransmissionModes[] = { TRANSMISSION_MODE_2K, TRANSMISSION_MODE_8K, TRANSMISSION_MODE_4K, TRANSMISSION_MODE_AUTO };
+//                 dtp.SetTransmission(TransmissionModes[sd->getTransmissionMode()]);
+                   getTransponderNum++;
+                   found_=true;
                     for (int n = 0; n < NumFrequencies; n++)
                     {
 
-                        cChannel *Channel = new cChannel;
-                        Channel->SetId(ts.getOriginalNetworkId(), ts.getTransportStreamId(), 0, 0);
-                        printf("# %d Mhz  TSID %5d  orig NIT %6d \n", Frequencies[n], ts.getTransportStreamId(), ts.getOriginalNetworkId());
-
-                        cTerrTransponder *t = new cTerrTransponder(0, Frequency, Bandwidth, system, streamId);
+//                        cChannel *Channel = new cChannel;
+//                        Channel->SetId(ts.getOriginalNetworkId(), ts.getTransportStreamId(), 0, 0);
+//                        printf("# %d Mhz  TSID %5d  orig NIT %6d \n", Frequencies[n], ts.getTransportStreamId(), ts.getOriginalNetworkId());
+                        if(Frequencies[n] == 0)continue;
+                        cTerrTransponder *t = new cTerrTransponder(0, Frequencies[n], Bandwidth, System, StreamId);
                         if (!t)
                         {
-                            esyslog("FatalError new cTerrTransponder %d failed\n", Frequency);
+                            esyslog("FatalError new cTerrTransponder %d failed\n", Frequencies[n]);
                         }
                         else
                         {
-                            mapRet ret = transponderMap.insert(make_pair(Frequency, t));
+                            mapRet ret = transponderMap.insert(make_pair(Frequencies[n], t));
                             if (ret.second)
-                                printf(" New transponder f: %d \n", Frequency);
+                                esyslog(" New transponder f: %d \n", Frequencies[n]);
                             else
                                 delete t;
                         }
                     }
-
                 }
                 break;
-            case SI::CableDeliverySystemDescriptorTag:
-                {
-                    if (mode != CABLE) break; // to prevent incorrect nit
-                    SI::CableDeliverySystemDescriptor *sd = (SI::CableDeliverySystemDescriptor *)d;
-                    int Frequency = Frequencies[0] = BCD2INT(sd->getFrequency()) / 10;
-                    static int Modulations[] = { QPSK, QAM_16, QAM_32, QAM_64, QAM_128, QAM_256, QAM_AUTO };
-                    int Modulation = Modulations[min(sd->getModulation(), 6)];
-                    int SymbolRate = BCD2INT(sd->getSymbolRate()) / 10;
-
-                    for (int n = 0; n < NumFrequencies; n++)
-                    {
-
-                        cChannel *Channel = new cChannel;
-                        Channel->SetId(ts.getOriginalNetworkId(), ts.getTransportStreamId(), 0, 0);
-                        printf("# %d Mhz  TSID %5d  orig NIT %6d \n", Frequencies[n], ts.getTransportStreamId(), ts.getOriginalNetworkId());
-
-                        cCableTransponder *t = new cCableTransponder(0, Frequency, SymbolRate, Modulation);
-                        if (!t)
-                        {
-                            esyslog("FatalError new cCableTransponder %d failed\n", Frequency);
-                        }
-                        else
-                        {
-                            mapRet ret = transponderMap.insert(make_pair(Frequency, t));
-                            if (ret.second)
-                                printf(" New transponder f: %d \n", Frequency);
-                            else
-                                delete t;
-                        }
-                    }
-
-                }
-                break;
+/* Is this need for channelscan ?? */
 #if VDRVERSNUM >= 20108
             case SI::LogicalChannelDescriptorTag:
                  if (Setup.StandardCompliance == STANDARD_NORDIG) {
                     SI::LogicalChannelDescriptor *lcd = (SI::LogicalChannelDescriptor *)d;
                     SI::LogicalChannelDescriptor::LogicalChannel LogicalChannel;
                     for (SI::Loop::Iterator it4; lcd->logicalChannelLoop.getNext(LogicalChannel, it4); ) {
-                        int lcn = LogicalChannel.getLogicalChannelNumber();
-                        int sid = LogicalChannel.getServiceId();
                         if (LogicalChannel.getVisibleServiceFlag()) {
+                           int lcn = LogicalChannel.getLogicalChannelNumber();
+                           int sid = LogicalChannel.getServiceId();
+#if VDRVERSNUM >= 20301
+                           for (cChannel *Channel = Channels->First(); Channel; Channel = Channels->Next(Channel)) {
+                               if (!Channel->GroupSep() && Channel->Transponder() == Transponder() && Channel->Nid() == ts.getOriginalNetworkId() && Channel->Tid() == ts.getTransportStreamId()) {
+                                  ChannelsModified |= Channel->SetLcn(lcn);
+#else
                            for (cChannel *Channel = Channels.First(); Channel; Channel = Channels.Next(Channel)) {
-                               if (!Channel->GroupSep() && Channel->Sid() == sid && Channel->Nid() == ts.getOriginalNetworkId() && Channel->Tid() == ts.getTransportStreamId() && Channel->Transponder() == Transponder()) {
+                               if (!Channel->GroupSep() && Channel->Transponder() == Transponder() && Channel->Nid() == ts.getOriginalNetworkId() && Channel->Tid() == ts.getTransportStreamId()) {
                                   Channel->SetLcn(lcn);
+#endif
                                   break;
                                   }
                                }
@@ -1442,12 +1485,18 @@ esyslog("nit terr\n");
                     SI::HdSimulcastLogicalChannelDescriptor *lcd = (SI::HdSimulcastLogicalChannelDescriptor *)d;
                     SI::HdSimulcastLogicalChannelDescriptor::HdSimulcastLogicalChannel HdSimulcastLogicalChannel;
                     for (SI::Loop::Iterator it4; lcd->hdSimulcastLogicalChannelLoop.getNext(HdSimulcastLogicalChannel, it4); ) {
-                        int lcn = HdSimulcastLogicalChannel.getLogicalChannelNumber();
-                        int sid = HdSimulcastLogicalChannel.getServiceId();
                         if (HdSimulcastLogicalChannel.getVisibleServiceFlag()) {
+                           int lcn = HdSimulcastLogicalChannel.getLogicalChannelNumber();
+                           int sid = HdSimulcastLogicalChannel.getServiceId();
+#if VDRVERSNUM >= 20301
+                           for (cChannel *Channel = Channels->First(); Channel; Channel = Channels->Next(Channel)) {
+                               if (!Channel->GroupSep() && Channel->Transponder() == Transponder() && Channel->Nid() == ts.getOriginalNetworkId() && Channel->Tid() == ts.getTransportStreamId()) {
+                                  ChannelsModified |= Channel->SetLcn(lcn);
+#else
                            for (cChannel *Channel = Channels.First(); Channel; Channel = Channels.Next(Channel)) {
-                               if (!Channel->GroupSep() && Channel->Sid() == sid && Channel->Nid() == ts.getOriginalNetworkId() && Channel->Tid() == ts.getTransportStreamId() && Channel->Transponder() == Transponder()) {
+                               if (!Channel->GroupSep() && Channel->Transponder() == Transponder() && Channel->Nid() == ts.getOriginalNetworkId() && Channel->Tid() == ts.getTransportStreamId()) {
                                   Channel->SetLcn(lcn);
+#endif
                                   break;
                                   }
                                }
@@ -1456,21 +1505,16 @@ esyslog("nit terr\n");
                     }
                  break;
 #endif
-            default:;
+            default: ;
             }
-
-            delete d;
-        }
-    }
-    found_ = insert;
+          delete d;
+          }
+      }
+#if VDRVERSNUM >= 20301
+    StateKey.Remove(ChannelsModified);
+#endif
 
     DEBUG_NIT(DBGNIT " ++  End of ProcessLoop MapSize: %d  lastCount %d   \n", (int)transponderMap.size(), lastCount);
-
-    DEBUG_NIT(DBGNIT " -- NIT ID  %d\n", nit.getNetworkId());
-    DEBUG_NIT(DBGNIT " -- Version %d \n", nit.getVersionNumber());
-    DEBUG_NIT(DBGNIT " -- moreThanOneSection %d\n", nit.moreThanOneSection());
-    DEBUG_NIT(DBGNIT " -- SectionNumber  %d\n", nit.getSectionNumber());
-    DEBUG_NIT(DBGNIT " -- LastSectionNumber  %d\n", nit.getLastSectionNumber());
     DEBUG_NIT(DBGNIT " -- moreThanOneSection %d\n", nit.moreThanOneSection());
 
     if (!nit.moreThanOneSection())
@@ -1501,7 +1545,7 @@ esyslog("nit terr\n");
         vector < int >tmp(64, 0);
         sectionSeen_ = tmp;
     }
-    found_ = insert = false;
+    found_ = false;
     lastCount = transponderMap.size();
     DEBUG_NIT(DBGNIT "DEBUG [channescan ]: set endofScan %s \n", endofScan ? "TRUE" : "FALSE");
 }

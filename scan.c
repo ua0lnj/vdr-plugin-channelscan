@@ -232,6 +232,7 @@ bool cScan::StartScanning(cScanParameters * scp)
         }
     }
 #endif
+
     Start();
     return true;
 }
@@ -392,11 +393,11 @@ int cScan::ScanServices(bool noSDT)
     int i = 0;
     while (!PFilter->EndOfScan() && (
                                         /* (time(NULL) - start < SCAN_DELAY && cMenuChannelscan::scanning) || */
-                                        (time(NULL) - start < (sourceType == IPTV ? cMenuChannelscan::timeout : SCAN_DELAY) + (SFilter->GetNumUsefulSid() ? SCAN_DELAY : 0) && cMenuChannelscan::scanState == ssGetChannels
+                                        (time(NULL) - start < (sourceType == IPTV ? cMenuChannelscan::timeout : SCAN_DELAY)
+                                        + (SFilter->GetNumUsefulSid() ? SCAN_DELAY : 0) && cMenuChannelscan::scanState == ssGetChannels
                                          /*  || (time(NULL) -PFilter->LastFoundTime() < SCAN_DELAY) */
                                         )))
     {
-
         PFilter->GetFoundNum(foundNum, totalNum);
 
         if (totalNum && !foundSids)
@@ -734,7 +735,7 @@ void cScan::ScanDVB_S(cTransponder * tp, cChannel * c)
 
 void cScan::ScanDVB_T(cTransponder * tp, cChannel * c)
 {
-    int timeout = 1000;
+    int timeout = 2000;
     int retries = 0;
     int response, n, m, s, p = 0;
     int frequency_orig = tp->Frequency();
@@ -823,7 +824,7 @@ mplp:        /* scan mplp transponders
             else
                 lastLocked = 0;
 
-            if (system == DVB_SYSTEM_2 && foundMux && p < foundMux)
+            if (system == DVB_SYSTEM_2 && foundMux && p < foundMux && scanParameter_.streamId == NO_STREAM_ID_FILTER)
             {
                 p++;
                 goto mplp;
@@ -1064,15 +1065,24 @@ void cScan::ScanDVB_I(cTransponder * tp, cChannel * c)
 
 /* ------ find channel with same parameters in vdr's channels---- */
     cChannel *Channel = NULL;
-    for (cChannel *cChannel = Channels.First(); cChannel; cChannel = Channels.Next(cChannel))
+#if VDRVERSNUM < 20301
+    for (cChannel *CChannel = Channels.First(); CChannel; CChannel = Channels.Next(CChannel))
+#else
+    cStateKey StateKey;
+    const cChannels *Channels = cChannels::GetChannelsRead(StateKey, 10);
+    if (!Channels)
+        return;
+
+    for (const cChannel *CChannel = Channels->First(); CChannel; CChannel = Channels->Next(CChannel))
+#endif
     {
-        if(cSource::IsType(cChannel->Source(), 'I') && !strcmp(cChannel->Parameters(),tp->Parameters()))
+        if(cSource::IsType(CChannel->Source(), 'I') && !strcmp(CChannel->Parameters(),tp->Parameters()))
         {
-            Channel = cChannel;
+            Channel = (cChannel*) CChannel;
             break;
         }
     }
-
+    StateKey.Remove();
 #define CHANNELMARKOBSOLETE "OBSOLETE"
 /* --------- scan SDT PAT ------------------- */
     usleep(1000*1000); //can be false traffic from previous channel
@@ -1085,7 +1095,6 @@ void cScan::ScanDVB_I(cTransponder * tp, cChannel * c)
     {
 /*   ------------------- NO SDT BUT PAT-----------------------    */
 /*some iptv udp multicast channels have no SDT, but have PAT & PMT */
-
         if (services < 0)
         {
             const char * provider = cMenuChannelscan::provider;
@@ -1113,8 +1122,18 @@ void cScan::ScanDVB_I(cTransponder * tp, cChannel * c)
 /*------------ create new channel ---------------------- */
             if (!Channel)
             {
+#if VDRVERSNUM < 20301
                 cChannel *newchannel = Channels.NewChannel((const cChannel *)c, (const char*)ip, "", provider, id[2], id[1], id[0], id[3]);
                 newchannel->CopyTransponderData(c);
+#else
+                cStateKey StateKey;
+                cChannels *Channels = cChannels::GetChannelsWrite(StateKey, 10);
+                if (!Channels)
+                    return;
+                cChannel *newchannel = Channels->NewChannel((const cChannel *)c, (const char*)ip, "", provider, id[2], id[1], id[0], id[3]);
+                newchannel->CopyTransponderData(c);
+                StateKey.Remove();
+#endif
                 if (!c->Vpid() && c->Apid(0))
                     radioChannelNames.push_back(newchannel->Name());
                 else
@@ -1122,7 +1141,6 @@ void cScan::ScanDVB_I(cTransponder * tp, cChannel * c)
             }
             else
             {
-
 /*------------ if channel was scanned and have OBSOLETE it is may be a new channel, so set new name for it ---------*/
 /* Is this need ?? */
 /* А если было случайное определение как отсутствующий канал? Лучше тогда вручную название поменять. */
@@ -1142,6 +1160,7 @@ void cScan::ScanDVB_I(cTransponder * tp, cChannel * c)
 /*---------- scan pids in PAT PMT without SDT -------------------------------------*/
             services = ScanServices(true);
         }
+        cDevice::PrimaryDevice()->StopReplay();
         return;
     }
 /* ---- channel found in vdr's channels but no traffic detected - mean OBSOLETE channel ----*/
@@ -1149,11 +1168,23 @@ void cScan::ScanDVB_I(cTransponder * tp, cChannel * c)
     {
          bool OldShowChannelNamesWithSource = Setup.ShowChannelNamesWithSource;
          Setup.ShowChannelNamesWithSource = false;
+#if VDRVERSNUM < 20301
          if (!endswith(Channel->Name(), CHANNELMARKOBSOLETE))
             Channel->SetName(cString::sprintf("%s %s", Channel->Name(), CHANNELMARKOBSOLETE), Channel->ShortName(), cString::sprintf("%s %s", CHANNELMARKOBSOLETE, Channel->Provider()));
+#else
+         bool ChannelsModified = false;
+         cStateKey StateKey;
+         cChannels *Channels = cChannels::GetChannelsWrite(StateKey, 10);
+         if (!Channels)
+             return;
+         if (!endswith(Channel->Name(), CHANNELMARKOBSOLETE))
+            ChannelsModified |= Channel->SetName(cString::sprintf("%s %s", Channel->Name(), CHANNELMARKOBSOLETE), Channel->ShortName(), cString::sprintf("%s %s", CHANNELMARKOBSOLETE, Channel->Provider()));
+         StateKey.Remove(ChannelsModified);
+#endif
          Setup.ShowChannelNamesWithSource = OldShowChannelNamesWithSource;
     }
     cDevice::PrimaryDevice()->StopReplay();
+    return;
 }
 
 void cScan::ScanAnalog(cTransponder * tp, cChannel * c)
@@ -1170,14 +1201,24 @@ void cScan::ScanAnalog(cTransponder * tp, cChannel * c)
 
 /*-- search channel in vdr's channels ----*/
     cChannel *channel = NULL;
-    for (cChannel *cChannel = Channels.First(); cChannel; cChannel = Channels.Next(cChannel))
+#if VDRVERSNUM < 20301
+    for (cChannel *CChannel = Channels.First(); CChannel; CChannel = Channels.Next(CChannel))
+#else
+    cStateKey StateKey;
+    const cChannels *Channels = cChannels::GetChannelsRead(StateKey, 10);
+    if (!Channels)
+        return;
+
+    for (const cChannel *CChannel = Channels->First(); CChannel; CChannel = Channels->Next(CChannel))
+#endif
     {
-        if(cSource::IsType(cChannel->Source(), 'V') && !strcmp(cChannel->Parameters(),tp->Parameters()) && cChannel->Frequency() == frequency)
+        if(cSource::IsType(CChannel->Source(), 'V') && !strcmp(CChannel->Parameters(),tp->Parameters()) && CChannel->Frequency() == frequency)
         {
-            channel = cChannel;
+            channel = (cChannel*) CChannel;
             break;
         }
     }
+    StateKey.Remove();
 
     const char *p = "analog";
     int t =  (int) 0.5 + (frequency * 16) / 1000;
@@ -1254,6 +1295,7 @@ void cScan::ScanAnalog(cTransponder * tp, cChannel * c)
                     cString ch = cString::sprintf("%s;%s:%d:%s:V:0:301:300:305:0:1:0:%d:0", *name,p,frequency,tp->Parameters(), t);
 
                     newchannel = new cChannel;
+
                     if (!newchannel->Parse(*ch))
                         return;
                 }
@@ -1276,10 +1318,21 @@ void cScan::ScanAnalog(cTransponder * tp, cChannel * c)
 
             if(newchannel)
             {
+#if VDRVERSNUM < 20301
                 Channels.Add(newchannel);
                 Channels.ReNumber();
+#else
+                cStateKey StateKey;
+                cChannels *Channels = cChannels::GetChannelsWrite(StateKey, 100);
+                if (!Channels)
+                    return;
+                Channels->Add(newchannel);
+                Channels->ReNumber();
+                StateKey.Remove();
+#endif
                 tvChannelNames.push_back(newchannel->Name());
             };
+            cDevice::PrimaryDevice()->StopReplay();
             return;
         }
         else
@@ -1301,16 +1354,25 @@ void cScan::ScanAnalog(cTransponder * tp, cChannel * c)
 
                 double f = (double) frequency / 1000;
 
-                cString name = cString::sprintf("FM %d.%2.0f",(int)f,(f-(int)f)*100.0);
+                cString name = cString::sprintf("FM %d.%02d",(int)f,(int)((f-(int)f)*100.0));
 
                 cChannel *newchannel;
                 cString ch = cString::sprintf("%s;FM radio:%d:%s:V:0:0:300:0:0:1:0:%d:0", *name,frequency,tp->Parameters(), t);
                 newchannel = new cChannel;
                 if (!newchannel->Parse(*ch))
                     return;
+#if VDRVERSNUM < 20301
                 Channels.Add(newchannel);
                 Channels.ReNumber();
-
+#else
+                cStateKey StateKey;
+                cChannels *Channels = cChannels::GetChannelsWrite(StateKey, 100);
+                if (!Channels)
+                    return;
+                Channels->Add(newchannel);
+                Channels->ReNumber();
+                StateKey.Remove();
+#endif
                 radioChannelNames.push_back(newchannel->Name());
                 return;
             }
@@ -1327,6 +1389,8 @@ void cScan::ScanAnalog(cTransponder * tp, cChannel * c)
         else   //radio
             radioChannelNames.push_back(channel->Name());
     }
+    cDevice::PrimaryDevice()->StopReplay();
+    return;
 }
 
 //---------  cMainMenu::Action()  -----------------------------------
@@ -1623,9 +1687,16 @@ void cScan::Action()
         cMenuChannelscan::scanState = ssSuccess;
 
     DLOG(DBG " End of scan scanState: ssSuccess!\n");
-
+#if VDRVERSNUM < 20301
     Channels.Save();
-
+#else
+    cStateKey StateKey;
+    cChannels *Channels = cChannels::GetChannelsWrite(StateKey, 100);
+    if (!Channels)
+        return;
+    Channels->Save();
+    StateKey.Remove();
+#endif
     DumpHdTransponder();
     ClearMap();
 }
@@ -1653,7 +1724,8 @@ void cScan::AddTransponders(int system)
                 cTerrTransponder *tp = dynamic_cast < cTerrTransponder * >(itr->second);
                 tp->PrintData();
             }
-            DEBUG_printf("%d=", cnt++);
+            cnt++
+            DEBUG_printf("%d=", cnt);
             transponders.v_tp_.push_back(itr->second);
         }
     }

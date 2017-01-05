@@ -526,7 +526,7 @@ bool cSatTransponder::Parse(const string & Line)
     frequency_ = strToInt(freq.c_str());
     if (frequency_ == -1)
         return false;
-    pol_ = polar[0];
+    pol_ = toupper(polar[0]);
     symbolrate_ = strToInt(symRate.c_str());
     if (symbolrate_ == -1)
         return false;

@@ -211,6 +211,9 @@ msgstr "Симв.скорость"
 msgid "DVB generation"
 msgstr "DVB поколение"
 
+msgid "Stream scan"
+msgstr "Поиск потока"
+
 msgid "DVB-S2 stream ID"
 msgstr "DVB-S2 ИД потока"
 

@@ -1,5 +1,9 @@
 VDR Plugin 'channelscan' Revision History
 -----------------------------------
+2017-01-05: (version 1.0.0)
+--  adoption for vdr-2.3.x
+
+
 2016-10-02:
 --  Create repozitory https://bitbucket.org/ua0lnj/channelscan
 

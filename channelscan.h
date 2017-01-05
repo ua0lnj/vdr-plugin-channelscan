@@ -29,7 +29,7 @@
 #include <vdr/plugin.h>
 #include <string>
 
-static const char *VERSION = "0.6.2-mod-13.0";
+static const char *VERSION = "1.0.0";
 static const char *DESCRIPTION = trNOOP("Scanning channels on Tuners and Iptv");
 static const char *MAINMENUENTRY = trNOOP("Channel Scan");
 

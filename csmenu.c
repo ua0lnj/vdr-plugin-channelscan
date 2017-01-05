@@ -1004,8 +1004,12 @@ void cMenuChannelscan::SetInfoBar() // Check with  cMenuScanActive
     Add(new cMenuInfoItem(tr("Information:")));
     if (srcTuners > 0)
         Add(new cMenuInfoItem(tr("Device Name:"),(const char*)cDevice::GetDevice(srcDevice[currentTuner])->DeviceName()));
+#if VDRVERSNUM < 20301
     Add(new cMenuInfoItem(tr("Entries in current channellist"), Channels.MaxNumber()));
-
+#else
+    LOCK_CHANNELS_READ;
+    Add(new cMenuInfoItem(tr("Entries in current channellist"), Channels->MaxNumber()));
+#endif
 }
 
 void cMenuChannelscan::Store()
@@ -1024,8 +1028,14 @@ eOSState cMenuChannelscan::ProcessKey(eKeys Key)
     if (cMenuChannelscan::scanState == ssInterrupted)
     {
         // get back to the channel that was being played, if Interrupted. If not available go to #1
+#if VDRVERSNUM < 20301
         if (!Channels.SwitchTo(::Setup.CurrentChannel))
             Channels.SwitchTo(1);
+#else
+        LOCK_CHANNELS_READ;
+        if (!Channels->SwitchTo(::Setup.CurrentChannel))
+            Channels->SwitchTo(1);
+#endif
         //printf("%s switching back to %d", __PRETTY_FUNCTION__, ::Setup.CurrentChannel);
         cMenuChannelscan::scanState = ssInit;
     }
@@ -1166,25 +1176,39 @@ eOSState cMenuChannelscan::ProcessKey(eKeys Key)
                     int LiveBufferTmp =::Setup.PauseKeyHandling;
                     ::Setup.PauseKeyHandling = 0;
 #endif
+#if VDRVERSNUM < 20301
                     //stop replay and set channel edit flag
-
                     Channels.IncBeingEdited();
-
+#endif
                     vector < cChannel * >tmp_channellist;
-                    int i;
-
                     //get pointer to all cChannel objects in Channels-list
+#if VDRVERSNUM < 20301
                     for (cChannel * ch = Channels.First(); ch; ch = Channels.Next(ch))
+#else
+                    cStateKey StateKey;
+                    cChannels *Channels = cChannels::GetChannelsWrite(StateKey, 10);
+                    if (!Channels) break;
+
+                    for (cChannel * ch = Channels->First(); ch; ch = Channels->Next(ch))
+#endif
                         tmp_channellist.push_back(ch);
 
                     //Delete all channels from Channels list
+                    int i;
                     for (i = 0; i < (int)tmp_channellist.size(); i++)
+#if VDRVERSNUM < 20301
                         Channels.Del(tmp_channellist[i]);
-
                     // Renumber
                     Channels.ReNumber();
                     //finished editing channel list
                     Channels.DecBeingEdited();
+#else
+                        Channels->Del(tmp_channellist[i]);
+                    // Renumber
+                    Channels->ReNumber();
+                    StateKey.Remove();
+#endif
+
 #ifdef REELVDR
                     //Set back livebuffer since livebuffer flag is once again set&reset in ActiveScan class
                     ::Setup.PauseKeyHandling = LiveBufferTmp;
@@ -1365,7 +1389,12 @@ void cMenuChannelscan::AddBlankLineItem(int lines)
 
 void cMenuChannelscan::SwitchChannel()
 {
+#if VDRVERSNUM < 20301
     Channels.SwitchTo(currentChannel);
+#else
+    LOCK_CHANNELS_READ;
+    Channels->SwitchTo(currentChannel);
+#endif
     /* cChannel *c = GetByNumber(currentChannel);
        if (c)
        device->SwitchChannel(c,true); */
@@ -1384,7 +1413,9 @@ cMenuScanActive::cMenuScanActive(cScanParameters * sp, bool isWiz):cOsdMenu(tr("
 cMenuScanActive::cMenuScanActive(cScanParameters * sp, bool isWiz):cOsdMenu(tr("Scan active"), COLUMNWIDTH), isWizardMode(false)
 #endif
 {
+#if VDRVERSNUM < 20301
     Channels.IncBeingEdited();
+#endif
 
     scp = sp;
 
@@ -1397,8 +1428,12 @@ cMenuScanActive::cMenuScanActive(cScanParameters * sp, bool isWiz):cOsdMenu(tr("
     LiveBufferTmp =::Setup.PauseKeyHandling;
     ::Setup.PauseKeyHandling = 0;
 #endif
-
+#if VDRVERSNUM < 20301
     oldChannelNumbers = Channels.MaxNumber();
+#else
+    LOCK_CHANNELS_READ;
+    oldChannelNumbers = Channels->MaxNumber();
+#endif
 
     // Make class
     tvChannelNames.clear();
@@ -1428,10 +1463,18 @@ cMenuScanActive::cMenuScanActive(cScanParameters * sp, bool isWiz):cOsdMenu(tr("
             if (cMenuChannelscan::scanState != ssGetChannels) break;
             usleep(100);
     }
-
     Setup();
-
+#if VDRVERSNUM < 20301
     Channels.Save();
+#else
+    cStateKey StateKey;
+    Channels = (cChannels*)cChannels::GetChannelsWrite(StateKey, 1000);
+    if(!Channels)
+        return;
+
+    Channels->Save();
+    StateKey.Remove();
+#endif
 }
 
 void cMenuScanActive::Setup()
@@ -1545,7 +1588,6 @@ void cMenuScanActive::Setup()
 
     if (cMenuChannelscan::scanState <= ssGetChannels)
     {
-
         // TV SD, TV HD, Radio only, TV (HD+SD),  TV TV (HD+SD);
         const char *serviceTxt[7];
 
@@ -1676,10 +1718,18 @@ void cMenuScanActive::Setup()
     {
         if (cMenuChannelscan::scanState == ssSuccess)
         {
+#if VDRVERSNUM < 20301
             if ((Channels.MaxNumber() > 1) && Channels.MaxNumber() == oldChannelNumbers)
                 Add(new cMenuInfoItem(tr("No new channels found")));
             else if (Channels.MaxNumber() > oldChannelNumbers)
                 Add(new cMenuInfoItem(tr("Added new channels"), (Channels.MaxNumber() - oldChannelNumbers)));
+#else
+            LOCK_CHANNELS_READ;
+            if ((Channels->MaxNumber() > 1) && Channels->MaxNumber() == oldChannelNumbers)
+                Add(new cMenuInfoItem(tr("No new channels found")));
+            else if (Channels->MaxNumber() > oldChannelNumbers)
+                Add(new cMenuInfoItem(tr("Added new channels"), (Channels->MaxNumber() - oldChannelNumbers)));
+#endif
         }
         if (cMenuChannelscan::scanState == ssWait)
         {
@@ -1693,7 +1743,6 @@ void cMenuScanActive::Setup()
         }
         ErrorMessage();
     }
-
     Display();
 }
 
@@ -1731,7 +1780,7 @@ void cMenuScanActive::ErrorMessage()
 void cMenuScanActive::DeleteDummy()
 {
     DEBUG_CSMENU(" --- %s --- %d -- \n", __PRETTY_FUNCTION__, Channels.Count());
-
+#if VDRVERSNUM < 20301
     if (Channels.Count() < 3)
         return;
 
@@ -1739,6 +1788,23 @@ void cMenuScanActive::DeleteDummy()
     if (channel && strcmp(channel->Name(), "ReelBox") == 0)
         Channels.Del(channel);
     Channels.ReNumber();
+#else
+    LOCK_CHANNELS_READ;
+    if (Channels->Count() < 3)
+        return;
+
+    cStateKey StateKey;
+    cChannels *channels = cChannels::GetChannelsWrite(StateKey, 10);
+    if(!channels)
+        return;
+
+    cChannel *channel = channels->GetByNumber(1);
+    if (channel && strcmp(channel->Name(), "ReelBox") == 0)
+        channels->Del(channel);
+
+    channels->ReNumber();
+    StateKey.Remove();
+#endif
 }
 
 eOSState cMenuScanActive::ProcessKey(eKeys Key)
@@ -1777,7 +1843,18 @@ eOSState cMenuScanActive::ProcessKey(eKeys Key)
             {
                 cMenuChannelscan::scanState = ssInit;
                 //printf(" cMenuChannelscan Call Channels.Save() \n");
+#if VDRVERSNUM < 20301
                 Channels.Save();
+#else
+                cStateKey StateKey;
+                cChannels *Channels = cChannels::GetChannelsWrite(StateKey, 10);
+                if(!Channels)
+                    return osBack;
+
+                Channels->Save();
+                StateKey.Remove();
+#endif
+
 #ifdef REELVDR
                 if (!isWizardMode)
                 cRemote::Put(kChannels);
@@ -1801,7 +1878,9 @@ eOSState cMenuScanActive::ProcessKey(eKeys Key)
         default:
             state = osContinue;
         }
+
         Setup();
+
     }
     //DDD("%s returning %d", __PRETTY_FUNCTION__, state);
     return state;
@@ -1835,11 +1914,15 @@ cMenuScanActive::~cMenuScanActive()
 
     // call cMenuChannels if kOk
     DeleteDummy();
-
+#if VDRVERSNUM < 20301
     Channels.DecBeingEdited();
-
     // try going back to the "current" Channel if not then  channel#1
     cChannel *channel = Channels.GetByNumber(::Setup.CurrentChannel);
+#else
+    LOCK_CHANNELS_READ;
+    // try going back to the "current" Channel if not then  channel#1
+    const cChannel *channel = Channels->GetByNumber(::Setup.CurrentChannel);
+#endif
     if (channel)                // && !scanning_on_receiving_device)
     {
         cDevice::PrimaryDevice()->SwitchChannel(channel, true);
