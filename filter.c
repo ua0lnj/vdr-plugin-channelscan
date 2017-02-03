@@ -848,7 +848,7 @@ void SdtFilter::Process(u_short Pid, u_char Tid, const u_char * Data, int Length
             }
         }
         else
-            channel = Channels.GetByServiceID(Source(), Transponder(), pmt.getServiceId());
+            channel = Channels.GetByServiceID(Source(), Transponder(), SiSdtService.getServiceId());
 
         if (!channel)
             channel = Channels.GetByChannelID(tChannelID(Source(), 0, Transponder(), SiSdtService.getServiceId()));

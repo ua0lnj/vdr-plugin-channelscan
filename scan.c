@@ -1082,7 +1082,9 @@ void cScan::ScanDVB_I(cTransponder * tp, cChannel * c)
             break;
         }
     }
+#if VDRVERSNUM >= 20301
     StateKey.Remove();
+#endif
 #define CHANNELMARKOBSOLETE "OBSOLETE"
 /* --------- scan SDT PAT ------------------- */
     usleep(1000*1000); //can be false traffic from previous channel
@@ -1218,8 +1220,9 @@ void cScan::ScanAnalog(cTransponder * tp, cChannel * c)
             break;
         }
     }
+#if VDRVERSNUM >= 20301
     StateKey.Remove();
-
+#endif
     const char *p = "analog";
     int t =  (int) 0.5 + (frequency * 16) / 1000;
 
