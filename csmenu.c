@@ -477,6 +477,7 @@ void cMenuChannelscan::TunerDetection() {
                     }
                     if (satip) //sat>ip device
                     {
+#if VDRVERSNUM >= 20106
                         dtp.SetSystem(DVB_SYSTEM_2);
                         dtp.SetStreamId(1);
                         c->SetTransponderData(cSource::stTerr, 180000, 50000, dtp.ToString('T'), true);//create virtual channel
@@ -487,6 +488,7 @@ void cMenuChannelscan::TunerDetection() {
                             stp = TERR2;
                         }
                         else
+#endif
                         {
                             dtp.SetStreamId(0);
                             c->SetTransponderData(cSource::stTerr, 180000, 50000, dtp.ToString('T'), true);//create virtual channel

@@ -247,15 +247,15 @@ int cTransponders::channel2Frequency(int region, int channel, int &bandwidth)
         }
         if (channel >= 5 && channel <= 6)
         {
-            return 79000000 - offset + (channel - 5) * 6000000;
+            return 76000000 - offset + (channel - 5) * 6000000;
         }
         if (channel >= 7 && channel <= 13)
         {
-            return 177000000 - offset + (channel - 7) * 6000000;
+            return 174000000 - offset + (channel - 7) * 6000000;
         }
         if (channel >= 14 && channel <= 83)
         {
-            return 473000000 - offset + (channel - 14) * 6000000;
+            return 470000000 - offset + (channel - 14) * 6000000;
         }
     }
     else if (region == 5 || region == 105) //Japan
