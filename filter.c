@@ -1187,6 +1187,7 @@ NitFilter::NitFilter()
     vector < int >tmp(64, 0);
     sectionSeen_ = tmp;
     mode = SAT;
+    memset(t2plp,0,sizeof(t2plp));
 }
 
 void NitFilter::SetStatus(bool On)
@@ -1267,7 +1268,7 @@ void NitFilter::Process(u_short Pid, u_char Tid, const u_char * Data, int Length
       SI::Loop::Iterator it2;
       SI::FrequencyListDescriptor *fld = (SI::FrequencyListDescriptor *)ts.transportStreamDescriptors.getNext(it2, SI::FrequencyListDescriptorTag);
       int NumFrequencies = fld ? fld->frequencies.getCount() + 1 : 1;
-      int Frequencies[NumFrequencies];
+      int Frequencies[NumFrequencies] = {0};
       if (fld) {
          int ct = fld->getCodingType();
          if (ct > 0) {
@@ -1292,15 +1293,15 @@ void NitFilter::Process(u_short Pid, u_char Tid, const u_char * Data, int Length
         int StreamId = 0;
         int System = DVB_SYSTEM_1;
         int T2SystemId = 0;
-        int Bandwidth;
+        int Bandwidth = 0;
 
       for (SI::Loop::Iterator it2; (d = ts.transportStreamDescriptors.getNext(it2)); ) {
           switch (d->getDescriptorTag()) {
             case SI::S2SatelliteDeliverySystemDescriptorTag: {
-                   if (mode != SATS2 && mode != SAT) break;// to prevent incorrect nit
-                           SI::S2SatelliteDeliverySystemDescriptor *sd = (SI::S2SatelliteDeliverySystemDescriptor *)d;
-                           System = DVB_SYSTEM_2;
-                           StreamId = sd->getInputStreamIdentifier();
+                    if (mode != SATS2 && mode != SAT) break;// to prevent incorrect nit
+                    SI::S2SatelliteDeliverySystemDescriptor *sd = (SI::S2SatelliteDeliverySystemDescriptor *)d;
+                    System = DVB_SYSTEM_2;
+                    StreamId = sd->getInputStreamIdentifier();
                  }
                  break;
             case SI::SatelliteDeliverySystemDescriptorTag: {
@@ -1322,10 +1323,6 @@ void NitFilter::Process(u_short Pid, u_char Tid, const u_char * Data, int Length
                  found_=true;
                     for (int n = 0; n < NumFrequencies; n++)
                     {
-
-//                        cChannel *Channel = new cChannel;
-//                        Channel->SetId(ts.getOriginalNetworkId(), ts.getTransportStreamId(), 0, 0);
-//                        printf("# %d Mhz  TSID %5d  orig NIT %6d \n", Frequencies[n], ts.getTransportStreamId(), ts.getOriginalNetworkId());
                         if(Frequencies[n] == 0)continue;
                         cSatTransponder *t = new cSatTransponder(Frequencies[n], Polarization,
                                                         SymbolRate, Modulation, CoderateH, RollOff, System, StreamId);
@@ -1352,9 +1349,6 @@ void NitFilter::Process(u_short Pid, u_char Tid, const u_char * Data, int Length
                  SI::CableDeliverySystemDescriptor *sd = (SI::CableDeliverySystemDescriptor *)d;
                  int Source = cSource::FromData(cSource::stCable);
                  int Frequency = Frequencies[0] = BCD2INT(sd->getFrequency()) / 10;
-                 //XXX FEC_outer???
-//                 static int CodeRates[] = { FEC_NONE, FEC_1_2, FEC_2_3, FEC_3_4, FEC_5_6, FEC_7_8, FEC_8_9, FEC_3_5, FEC_4_5, FEC_9_10, FEC_AUTO, FEC_AUTO, FEC_AUTO, FEC_AUTO, FEC_AUTO, FEC_NONE };
-//                 int CoderateH = CodeRates[sd->getFecInner()];
                  static int Modulations[] = { QPSK, QAM_16, QAM_32, QAM_64, QAM_128, QAM_256, QAM_AUTO };
                  int Modulation = Modulations[min(sd->getModulation(), 6)];
                  int SymbolRate = BCD2INT(sd->getSymbolRate()) / 10;
@@ -1362,10 +1356,6 @@ void NitFilter::Process(u_short Pid, u_char Tid, const u_char * Data, int Length
                  found_=true;
                     for (int n = 0; n < NumFrequencies; n++)
                     {
-
-//                        cChannel *Channel = new cChannel;
-//                        Channel->SetId(ts.getOriginalNetworkId(), ts.getTransportStreamId(), 0, 0);
-//                        printf("# %d Mhz  TSID %5d  orig NIT %6d \n", Frequencies[n], ts.getTransportStreamId(), ts.getOriginalNetworkId());
                         if(Frequencies[n] == 0)continue;
                         cCableTransponder *t = new cCableTransponder(0, Frequencies[n], SymbolRate, Modulation);
                         if (!t)
@@ -1388,25 +1378,49 @@ void NitFilter::Process(u_short Pid, u_char Tid, const u_char * Data, int Length
                  switch (sd->getExtensionDescriptorTag()) {
                    case SI::T2DeliverySystemDescriptorTag: {
                             if (mode != TERR && mode != TERR2) break; // to prevent incorrect nit
-                                  SI::T2DeliverySystemDescriptor *td = (SI::T2DeliverySystemDescriptor *)d;
-                                  System = DVB_SYSTEM_2;
-                                  StreamId = td->getPlpId();
-                                  T2SystemId = td->getT2SystemId();
-                                  if (td->getExtendedDataFlag()) {
-//                                     dtp.SetSisoMiso(td->getSisoMiso());
-                                     static int T2Bandwidths[] = { 8000000, 7000000, 6000000, 5000000, 10000000, 1712000, 0, 0 };
-                                     Bandwidth = T2Bandwidths[td->getBandwidth()];
-//                                     static int T2GuardIntervals[] = { GUARD_INTERVAL_1_32, GUARD_INTERVAL_1_16, GUARD_INTERVAL_1_8, GUARD_INTERVAL_1_4, GUARD_INTERVAL_1_128, GUARD_INTERVAL_19_128, GUARD_INTERVAL_19_256, 0 };
-//                                     dtp.SetGuard(T2GuardIntervals[td->getGuardInterval()]);
-//                                     static int T2TransmissionModes[] = { TRANSMISSION_MODE_2K, TRANSMISSION_MODE_8K, TRANSMISSION_MODE_4K, TRANSMISSION_MODE_1K, TRANSMISSION_MODE_16K, TRANSMISSION_MODE_32K, TRANSMISSION_MODE_AUTO, TRANSMISSION_MODE_AUTO };
-//                                     dtp.SetTransmission(T2TransmissionModes[td->getTransmissionMode()]);
-                                     //TODO add parsing of frequencies
-                                     }
+                            SI::T2DeliverySystemDescriptor *td = (SI::T2DeliverySystemDescriptor *)d;
+                            System = DVB_SYSTEM_2;
+                            if (Frequencies[0] == 0 && NumFrequencies == 1) //no frequency table, mean plpid scan on current transponder
+                                t2plp[td->getPlpId()] = 1;
+                                StreamId = td->getPlpId();
+                                T2SystemId = td->getT2SystemId();
+                                if (td->getExtendedDataFlag()) {
+                                    static int T2Bandwidths[] = { 8000000, 7000000, 6000000, 5000000, 10000000, 1712000, 0, 0 };
+                                    Bandwidth = T2Bandwidths[td->getBandwidth()];
+                                }
+                                getTransponderNum++;
+                                found_=true;
+                                for (int n = 0; n < NumFrequencies; n++)
+                                {
+                                    if(Frequencies[n] == 0)continue;
+                                    cTerrTransponder *t = new cTerrTransponder(0, Frequencies[n], Bandwidth, System, StreamId);
+                                    if (!t)
+                                    {
+                                        esyslog("FatalError new cTerrTransponder %d failed\n", Frequencies[n]);
+                                    }
+                                    else
+                                    {
+                                        mapRet ret = transponderMap.insert(make_pair(Frequencies[n], t));
+                                        if (ret.second)
+                                            esyslog(" New transponder f: %d plpid %d\n", Frequencies[n], StreamId);
+                                        else
+                                            delete t;
+                                    }
+                                }
 
                         }
                         break;
                    default: ;
                    }
+                 }
+                 break;
+            case SI::T2DeliverySystemDescriptorTag: { //incorrect t2deliverysystem tag, use in some regions of Russia for plpid
+                 if (mode != TERR && mode != TERR2) break; // to prevent incorrect nit
+                 SI::CharArray a = d->getData();
+                 System = DVB_SYSTEM_2;
+                 t2plp[a[3]] = 1;
+                 DEBUG_NIT(DBGNIT "found t2 plpid %d %d\n",a[3],t2plp[a[3]]);
+                 found_=true;
                  }
                  break;
             case SI::TerrestrialDeliverySystemDescriptorTag: {
@@ -1417,26 +1431,10 @@ void NitFilter::Process(u_short Pid, u_char Tid, const u_char * Data, int Length
                  int Frequency = Frequencies[0] = sd->getFrequency() * 10;
                  static int Bandwidths[] = { 8000000, 7000000, 6000000, 5000000, 0, 0, 0, 0 };
                  if (System == DVB_SYSTEM_1) Bandwidth = Bandwidths[sd->getBandwidth()];
-//                 static int Constellations[] = { QPSK, QAM_16, QAM_64, QAM_AUTO };
-//                 dtp.SetModulation(Constellations[sd->getConstellation()]);
-//                 dtp.SetSystem(DVB_SYSTEM_1);
-//                 static int Hierarchies[] = { HIERARCHY_NONE, HIERARCHY_1, HIERARCHY_2, HIERARCHY_4, HIERARCHY_AUTO, HIERARCHY_AUTO, HIERARCHY_AUTO, HIERARCHY_AUTO };
-//                 dtp.SetHierarchy(Hierarchies[sd->getHierarchy()]);
-//                 static int CodeRates[] = { FEC_1_2, FEC_2_3, FEC_3_4, FEC_5_6, FEC_7_8, FEC_AUTO, FEC_AUTO, FEC_AUTO };
-//                 CoderateH = CodeRates[sd->getCodeRateHP()];
-//                 dtp.SetCoderateL(CodeRates[sd->getCodeRateLP()]);
-//                 static int GuardIntervals[] = { GUARD_INTERVAL_1_32, GUARD_INTERVAL_1_16, GUARD_INTERVAL_1_8, GUARD_INTERVAL_1_4 };
-//                 dtp.SetGuard(GuardIntervals[sd->getGuardInterval()]);
-//                 static int TransmissionModes[] = { TRANSMISSION_MODE_2K, TRANSMISSION_MODE_8K, TRANSMISSION_MODE_4K, TRANSMISSION_MODE_AUTO };
-//                 dtp.SetTransmission(TransmissionModes[sd->getTransmissionMode()]);
                    getTransponderNum++;
                    found_=true;
                     for (int n = 0; n < NumFrequencies; n++)
                     {
-
-//                        cChannel *Channel = new cChannel;
-//                        Channel->SetId(ts.getOriginalNetworkId(), ts.getTransportStreamId(), 0, 0);
-//                        printf("# %d Mhz  TSID %5d  orig NIT %6d \n", Frequencies[n], ts.getTransportStreamId(), ts.getOriginalNetworkId());
                         if(Frequencies[n] == 0)continue;
                         cTerrTransponder *t = new cTerrTransponder(0, Frequencies[n], Bandwidth, System, StreamId);
                         if (!t)
@@ -1545,7 +1543,7 @@ void NitFilter::Process(u_short Pid, u_char Tid, const u_char * Data, int Length
         vector < int >tmp(64, 0);
         sectionSeen_ = tmp;
     }
-    found_ = false;
+
     lastCount = transponderMap.size();
     DEBUG_NIT(DBGNIT "DEBUG [channescan ]: set endofScan %s \n", endofScan ? "TRUE" : "FALSE");
 }

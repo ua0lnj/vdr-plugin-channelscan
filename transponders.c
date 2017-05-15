@@ -798,7 +798,7 @@ void cTransponders::Load(cScanParameters * scp)
                 // TODO explain
                 } else fec = StatToFec(scp->fec);
                 system = scp->system;
-                streamId = scp->streamId;
+                streamId = scp->streamId > 0 ? scp->streamId : 0;
             }
             scp->modulation = StatToS2Mod(scp->modulation);
 
@@ -832,7 +832,7 @@ void cTransponders::Load(cScanParameters * scp)
                 bandwidth = BANDWIDTH_8_MHZ;
             else if (scp->bandwidth == 1)
                 bandwidth = BANDWIDTH_7_MHZ;
-            if (scp->type == TERR2)
+            if (scp->type == TERR2 && scp->streamId > 0)
             {
                 streamId = scp->streamId;
             }
@@ -1325,7 +1325,7 @@ void cTransponders::CalcTerrTpl(bool Complete, cScanParameters * scp)
             f = channel2Frequency(0, channel, bandwidth);
             if (f)
             {
-                cTerrTransponder *t = new cTerrTransponder(channel, f, bandwidth, system ,0);
+                cTerrTransponder *t = new cTerrTransponder(channel, f, bandwidth, system, NO_STREAM_ID_FILTER);
                 v_tp_.push_back(t);
             }
         }

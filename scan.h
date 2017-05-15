@@ -111,7 +111,9 @@ class cScan:public cThread
 
     int lastLocked;
     int foundNum, totalNum;
-    int foundMux;
+    int otherMux;
+    int t2plp[256];
+
 
     NitFilter *nitFilter_;
     SdtFilter *SFilter;

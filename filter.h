@@ -178,6 +178,7 @@ public cFilter
     volatile bool endofScan;
     volatile bool found_;
     std::vector < int > sectionSeen_;
+    int t2plp[256];
   protected:
     virtual void Process(u_short Pid, u_char Tid, const u_char * Data, int Length);
   public:
@@ -191,6 +192,10 @@ public cFilter
     void Dump();
     bool Found();
     int mode;
+    int * T2plp()
+    {
+        return t2plp;
+    }
 };
 
 

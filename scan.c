@@ -87,7 +87,7 @@ cScan::cScan()
     foundNum = 0;
     nitScan = false;
     parameters = "";
-    foundMux = 0;
+    otherMux = 0;
 
     nitFilter_ = NULL;
     PFilter = NULL;
@@ -357,7 +357,7 @@ int cScan::ScanServices(bool noSDT)
     const time_t  tt = time(NULL);
     time_t tt_;
     char *strDate;
-    foundMux = 0;
+    otherMux = 0;
 
     cMenuChannelscan::scanState = ssGetChannels;
 #ifdef WITH_EIT
@@ -415,7 +415,6 @@ int cScan::ScanServices(bool noSDT)
 
         tt_ = time(NULL);
         DEBUG_printf("%s %d INloop:%4.2fs:\n", __PRETTY_FUNCTION__, i, (float)difftime(tt_, start));
-//esyslog("scan delay %d  sid %d end %d\n",time(NULL) - start,foundSids,PFilter->EndOfScan()?1:0);
     }
 
     tt_ = time(NULL);
@@ -435,7 +434,7 @@ int cScan::ScanServices(bool noSDT)
 
     if (SFilter->GetNumUsefulSid() == 0 && totalNum > 0) totalNum *= -1;
     if (scanParameter_.streamId > -2) //tuner support mplp
-        foundMux = SMFilter->GetNumMux();
+        otherMux = SMFilter->GetNumMux();
 
     DEBUG_printf("%s after GetFountNum() :%4.2fs:\n", __PRETTY_FUNCTION__, (float)difftime(tt_, tt));
 
@@ -477,7 +476,6 @@ int cScan::ScanServices(bool noSDT)
 //-------------------------------------------------------------------------
 void cScan::ScanNitServices()
 {
-
     DEBUG_SCAN("DEBUG [cs]; ScanNITService \n");
     nitFilter_ = new NitFilter;
     nitFilter_->mode = sourceType;
@@ -503,6 +501,10 @@ void cScan::ScanNitServices()
             transponderNr = (int)(time(NULL) - start);
         usleep(200 * 1000);     // inside loop
     }
+    //save t2 plps if NIT found
+    if(nitFilter_->Found())
+        memcpy(t2plp,(int*)nitFilter_->T2plp(),sizeof(t2plp));
+
     device->Detach(nitFilter_);
 
     if (nitFilter_)
@@ -736,11 +738,12 @@ void cScan::ScanDVB_S(cTransponder * tp, cChannel * c)
 void cScan::ScanDVB_T(cTransponder * tp, cChannel * c)
 {
     int timeout = 2000;
-    int retries = 0;
-    int response, n, m, s, p = 0;
+    int response, n, m, s, plps, p;
     int frequency_orig = tp->Frequency();
     region = scanParameter_.region;
-    foundMux = 0;
+    otherMux = 0;
+    plps = 0;
+    memset(t2plp,0,sizeof(t2plp));
 
     /* For Nit transponders */
     if (frequency_orig < 1000000)
@@ -770,68 +773,81 @@ void cScan::ScanDVB_T(cTransponder * tp, cChannel * c)
             tp->SetTransponderData(c, sourceCode);
             system = tp->System();
 
-mplp:        /* scan mplp transponders
-              * if SDT filter found some MUX, try change streamId from 0 to foundMux
-              * it can be works....if plp_id is 0,1,2,...
-              */
-            if ((scanParameter_.frequency < 5 || scanParameter_.streamId == NO_STREAM_ID_FILTER) && p)
-            {
-                (dynamic_cast < cTerrTransponder * >(tp))->SetStreamId(p);
-                tp->SetTransponderData(c, sourceCode);
-            }
-            /* SAT>IP use Rid to assign frontend */
-            if (scanParameter_.adapter > 200)
-                c->SetId(0, 0, 0, scanParameter_.adapter - 200);
+            /* scan mplp transponders
+             * 2 way - from NIT and try all plps
+             * if SDT filter found some MUX, scan plp finished when numbers of plps = numbers of MUX
+             * second way is a longest
+             */
+            int r = 1;
+            if (system == DVB_SYSTEM_2 && scanParameter_.streamId == NO_STREAM_ID_FILTER) r = 256;
 
-            // retune with offset
-            if (!device->SwitchChannel(c, device->IsPrimaryDevice()))
+            /* t2 mplp loop */
+            for (p = 0; p < r; p++)
             {
-                esyslog(ERR "SwitchChannel(c)  failed\n");
-                break;
-            }
 
-            DLOG("%i Tune %i \n", retries, frequency);
-            DEBUG_printf("\nSleeping %s %d\n", __PRETTY_FUNCTION__, __LINE__);
-            usleep(1500 * 1000);    // inside loop
-            if (lastLocked)
-            {
-               DEBUG_printf("\nSleeping %s %d\n", __PRETTY_FUNCTION__, __LINE__);
-               sleep(2);           // avoid false lock
-            }
-            for (m = 0; m < (detailedSearch & 1 ? 8 : 2); m++)
-            {
-                response = getStatus();
-                DLOG("DEBUG [channelscan]:  DVB_T detailedSearch  %X  m %d \n", detailedSearch, m);
-                DLOG("%i RESPONSE %x\n", retries, response);
-
-                if ((response & 0x10) == 0x10)  // Lock
-                   break;
-                if ((response & 15) > 2)
-                {                   // Almost locked, give it some more time
-                   DEBUG_printf("\nSleeping %s %d\n", __PRETTY_FUNCTION__, __LINE__);
-                   sleep(1);
+                if (t2plp[p])
+                {
+                    (dynamic_cast < cTerrTransponder * >(tp))->SetStreamId(p);
+                    tp->SetTransponderData(c, sourceCode);
                 }
-            }
-            if (cMenuChannelscan::scanState >= ssInterrupted)
-               return;
+                else if ((scanParameter_.detail == 1 || scanParameter_.streamId == NO_STREAM_ID_FILTER) && !nitScan)
+                {
+                    (dynamic_cast < cTerrTransponder * >(tp))->SetStreamId(p);
+                    tp->SetTransponderData(c, sourceCode);
+                }
+                else if (nitScan && p > 0) continue;
 
-            if (device->HasLock(timeout))
-            {
-               DLOG(DBG "  ------ HAS LOCK ------\n");
-               ScanServices(); //dtmb & isdb-t ??
-               lastLocked = 1;
-            }
-            else
-                lastLocked = 0;
+                /* SAT>IP use Rid to assign frontend */
+                if (scanParameter_.adapter > 200)
+                    c->SetId(0, 0, 0, scanParameter_.adapter - 200);
 
-            if (system == DVB_SYSTEM_2 && foundMux && p < foundMux && scanParameter_.streamId == NO_STREAM_ID_FILTER)
-            {
-                p++;
-                goto mplp;
+                // retune with offset
+                if (!device->SwitchChannel(c, device->IsPrimaryDevice()))
+                {
+                    esyslog(ERR "SwitchChannel(c)  failed\n");
+                    break;
+                }
+
+                DLOG("%i Tune %i \n", retries, frequency);
+                DEBUG_printf("\nSleeping %s %d\n", __PRETTY_FUNCTION__, __LINE__);
+                usleep(1500 * 1000);    // inside loop
+                if (lastLocked)
+                {
+                    DEBUG_printf("\nSleeping %s %d\n", __PRETTY_FUNCTION__, __LINE__);
+                    sleep(2);           // avoid false lock
+                }
+                for (m = 0; m < (detailedSearch & 1 ? 8 : 2); m++)
+                {
+                    response = getStatus();
+                    DLOG("DEBUG [channelscan]:  DVB_T detailedSearch  %X  m %d \n", detailedSearch, m);
+                    DLOG("RESPONSE %x\n", response);
+
+                    if ((response & 0x10) == 0x10)  // Lock
+                        break;
+                    if ((response & 15) > 2)
+                    {                   // Almost locked, give it some more time
+                        DEBUG_printf("\nSleeping %s %d\n", __PRETTY_FUNCTION__, __LINE__);
+                        sleep(1);
+                    }
+                }
+                if (cMenuChannelscan::scanState >= ssInterrupted)
+                    return;
+
+                if (device->HasLock(timeout))
+                {
+                    DLOG(DBG "  ------ HAS LOCK ------\n");
+                    ScanServices(); //dtmb & isdb-t ??
+                    lastLocked = 1;
+                    plps++;
+                }
+                else
+                    lastLocked = 0;
+
+                DLOG("DEBUG [channelscan]: found %d total %d mux %d plps %d t2plp %d\n",foundNum,totalNum,otherMux,plps,t2plp[p]);
+                if (plps == 0) break; //must be streamId = 0
+                if (!nitScan && plps > otherMux) break;
             }
             if(lastLocked)return;
-
-            retries++;
         }
     }
 }

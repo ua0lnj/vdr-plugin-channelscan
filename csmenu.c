@@ -217,7 +217,7 @@ cMenuChannelscan::cMenuChannelscan(int src, int freq, int symrate, char pol, boo
     NITScan[0] = tr("No");
     NITScan[1] = tr("Yes");
 
-    numNITScan = 0;
+    numNITScan = 1;
 
     addNewChannelsToTexts[0] = tr("End of channellist");    // default in Setup
     addNewChannelsToTexts[1] = tr("New channellist");
@@ -645,6 +645,7 @@ void cMenuChannelscan::Set()
     {
         sysStat = 0; //reset for DVB-T2 autoscan
         streamId = 0;
+        plpStat = 0;
     }
 
     DEBUG_CSMENU(DBGM "------------source %d %s %d current %d device %d tuner %d frontend %d\n",source, *cSource::ToString(source), srcTypes[currentTuner], current, srcDevice[currentTuner], currentTuner, srcFrontend[currentTuner]);
@@ -656,7 +657,7 @@ void cMenuChannelscan::Set()
     else
         AddBlankLineItem(1);
 
-    if (scanMode != eModeManual && (sourceType == SAT || sourceType == SATS2 || sourceType == TERR || sourceType == TERR2 || sourceType == CABLE))
+    if (/*scanMode != eModeManual &&*/ (sourceType == SAT || sourceType == SATS2 || sourceType == TERR || sourceType == TERR2 || sourceType == CABLE))
         Add(new cMenuEditStraItem(tr("NIT Scan"), (int *)&numNITScan, 2, NITScan));
     else
         AddBlankLineItem(1);
@@ -828,7 +829,7 @@ void cMenuChannelscan::Set()
                 {
                     Add(new cMenuEditStraItem(tr("Stream scan"), &plpStat, 2, plpTexts));
                     if(plpStat)
-                        Add(new cMenuEditIntItem(tr("DVB-T2 stream ID"), &streamId, 0, 65525));
+                        Add(new cMenuEditIntItem(tr("DVB-T2 stream ID"), &streamId, 0, 255));
                     else
                         AddBlankLineItem(1);
                 }
@@ -1135,7 +1136,10 @@ eOSState cMenuChannelscan::ProcessKey(eKeys Key)
         scp.symbolrate_mode = srScanMode;
         scp.nitscan = numNITScan;
         scp.region = regionStat + (sourceType == ANALOG ? 100 : 0);
-        scp.streamId = plpStat ? streamId : NO_STREAM_ID_FILTER; // for auto
+        if (srcMS[currentTuner])
+            scp.streamId = plpStat ? streamId : NO_STREAM_ID_FILTER; // for auto
+        else
+            scp.streamId = -2; //tuner can't t2 plp
 //        scp.t2systemId = t2systemId;
         memcpy(&scp.startip,startIp,sizeof(scp.startip));
         memcpy(&scp.endip,endIp,sizeof(scp.endip));
