@@ -1350,7 +1350,11 @@ void NitFilter::Process(u_short Pid, u_char Tid, const u_char * Data, int Length
                  int Source = cSource::FromData(cSource::stCable);
                  int Frequency = Frequencies[0] = BCD2INT(sd->getFrequency()) / 10;
                  static int Modulations[] = { QPSK, QAM_16, QAM_32, QAM_64, QAM_128, QAM_256, QAM_AUTO };
+#if VDRVERSNUM < 20305
                  int Modulation = Modulations[min(sd->getModulation(), 6)];
+#else
+                 int Modulation = Modulations[std::min(sd->getModulation(), 6)];
+#endif
                  int SymbolRate = BCD2INT(sd->getSymbolRate()) / 10;
                  getTransponderNum++;
                  found_=true;
