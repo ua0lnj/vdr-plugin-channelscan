@@ -542,6 +542,8 @@ void PatFilter::Process(u_short Pid, u_char Tid, const u_char *Data, int Length)
               case 1: // STREAMTYPE_11172_VIDEO
               case 2: // STREAMTYPE_13818_VIDEO
               case 0x1B: // H.264
+              case 0x24: // H.265
+              case 0x42: // AVS+
                       Vpid = esPid;
                       Ppid = pmt.getPCRPid();
                       Vtype = stream.getStreamType();
