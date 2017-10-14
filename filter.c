@@ -749,7 +749,13 @@ void PatFilter::Process(u_short Pid, u_char Tid, const u_char *Data, int Length)
 #endif
             num++;
             lastFound = time(NULL);
-
+            if (cSource::IsType(Source(), 'I'))
+            {
+               if(Vpid)
+                   tvChannelNames.push_back(channel->Name());
+               else
+                   radioChannelNames.push_back(channel->Name());
+            }
         }
 #if VDRVERSNUM < 20301
      Channels.Unlock();
@@ -965,24 +971,27 @@ void SdtFilter::Process(u_short Pid, u_char Tid, const u_char * Data, int Length
 
                             if (SiSdtService.getRunningStatus() > SI::RunningStatusNotRunning || SiSdtService.getRunningStatus() == SI::RunningStatusUndefined) // see DVB BlueBook A005 r5, section 4.3
                             {
-                                mutexNames.Lock();
-                                switch (sd->getServiceType())
+                                if (!cSource::IsType(Source(), 'I')) //for iptv use PAT, iptv providers can set wrong service type
                                 {
-                                case 0x1:
-                                case 0x11:
-                                case 0x16:
-                                case 0x19:
-                                case 0xC3:
-                                case 0x86:
-                                    tvChannelNames.push_back(NameBuf);  // if service wanted
-                                    break;
-                                case 0x2:
-                                    radioChannelNames.push_back(NameBuf);   // if service wanted
-                                    break;
-                                default:;
-                                    //dataChannelNames.push_back(NameBuf);
+                                    mutexNames.Lock();
+                                    switch (sd->getServiceType())
+                                    {
+                                    case 0x1:
+                                    case 0x11:
+                                    case 0x16:
+                                    case 0x19:
+                                    case 0xC3:
+                                    case 0x86:
+                                        tvChannelNames.push_back(NameBuf);  // if service wanted
+                                        break;
+                                    case 0x2:
+                                        radioChannelNames.push_back(NameBuf);   // if service wanted
+                                        break;
+                                    default:;
+                                        //dataChannelNames.push_back(NameBuf);
+                                    }
+                                    mutexNames.Unlock();
                                 }
-                                mutexNames.Unlock();
                                 usefulSid[numSid] = 1;
                                 numUsefulSid++;
                             }
@@ -1160,7 +1169,7 @@ void SdtMuxFilter::Process(u_short Pid, u_char Tid, const u_char * Data, int Len
     }
     const time_t ttout = time(NULL);
     asprintf(&strDate, "%s", asctime(localtime(&ttout)));
-    DEBUG_printf("\n\nSdtMuxFilter::Process OUT :%4.1fsec: %s\n", (float)difftime(ttout, tt), strDate);
+    DEBUG_printf("\nSdtMuxFilter::Process OUT :%4.1fsec: %s\n", (float)difftime(ttout, tt), strDate);
 }
 
 

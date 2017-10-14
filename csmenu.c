@@ -101,6 +101,8 @@ time_t cht;
 extern bool OnlyChannelList;
 int Ntv = 0, Nradio = 0;
 
+int OsdWidth, OsdHeight;
+
 bool scanning_on_receiving_device = false;
 
 // --- Class cMenuChannelscan ------------------------------------------------
@@ -257,6 +259,16 @@ cMenuChannelscan::cMenuChannelscan(int src, int freq, int symrate, char pol, boo
     srScanTexts[2] = tr("Manual");
 
     srScanMode = 0;
+
+    double aspect = 0;
+
+    cDevice::PrimaryDevice()->GetOsdSize((int&)OsdWidth, (int&)OsdHeight, (double&)aspect);
+    if (!OsdWidth || !OsdHeight)
+    {
+        OsdWidth = 720;
+        OsdHeight = 576;
+    }
+
 
     // CurrentChannel has to be greater than 0!
     currentChannel = (::Setup.CurrentChannel == 0) ? 1 : ::Setup.CurrentChannel;
@@ -2110,7 +2122,7 @@ const char *cMenuScanInfoItem::FECToStr(int Index)
 
 cMenuStatusBar::cMenuStatusBar(int Total, int Current, int Channel, int mode, int region)
 {
-    int barWidth = 50;
+    int barWidth = 25 * (::Setup.UseSmallFont ? 1 : 0) + OsdWidth / 29;
     int percent;
     Current += 1;
 

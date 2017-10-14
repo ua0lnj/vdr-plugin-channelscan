@@ -158,13 +158,11 @@ bool cScan::StartScanning(cScanParameters * scp)
     // activate Network Information  on auto scan
     //  assume nit scan
     scanParameter_ = *scp;
-    if (scp->frequency < 5)
+    if ((scp->frequency < 5 && (scp->type == SAT || scp->type == SATS2 || scp->type == TERR || scp->type == CABLE)) || scp->type == TERR2)
     {
-        if (scp->type == SAT || scp->type == SATS2 || scp->type == TERR || scp->type == TERR2 || scp->type == CABLE) {
-           if (scp->nitscan == 1) {
-              nitScan = true;
-           } else nitScan = false;
-        }
+        if (scp->nitscan == 1) {
+            nitScan = true;
+        } else nitScan = false;
     }
 
     DEBUG_SCAN(DBGSCAN "  %s  %s \n", __PRETTY_FUNCTION__, nitScan ? "AUTO" : "MANUELL");
@@ -541,6 +539,8 @@ void cScan::ScanDVB_S(cTransponder * tp, cChannel * c)
     if (maxmods == 1 && tp->System() == DVB_SYSTEM_2)
         return;
 
+    if (device->IsPrimaryDevice()) cDevice::PrimaryDevice()->StopReplay();
+
     unsigned  int nRadio = radioChannelNames.size();
     unsigned  int nTv = tvChannelNames.size();
 
@@ -741,9 +741,11 @@ void cScan::ScanDVB_T(cTransponder * tp, cChannel * c)
     int response, n, m, s, plps, p;
     int frequency_orig = tp->Frequency();
     region = scanParameter_.region;
-    otherMux = 0;
+    int Muxs = 0;
     plps = 0;
     memset(t2plp,0,sizeof(t2plp));
+
+    if (device->IsPrimaryDevice()) cDevice::PrimaryDevice()->StopReplay();
 
     /* For Nit transponders */
     if (frequency_orig < 1000000)
@@ -775,7 +777,7 @@ void cScan::ScanDVB_T(cTransponder * tp, cChannel * c)
 
             /* scan mplp transponders
              * 2 way - from NIT and try all plps
-             * if SDT filter found some MUX, scan plp finished when numbers of plps = numbers of MUX
+             * if SDT filter found some MUX on plp 0, scan plp finished when numbers of plps = numbers of MUX
              * second way is a longest
              */
             int r = 1;
@@ -784,7 +786,6 @@ void cScan::ScanDVB_T(cTransponder * tp, cChannel * c)
             /* t2 mplp loop */
             for (p = 0; p < r; p++)
             {
-
                 if (t2plp[p])
                 {
                     (dynamic_cast < cTerrTransponder * >(tp))->SetStreamId(p);
@@ -843,9 +844,10 @@ void cScan::ScanDVB_T(cTransponder * tp, cChannel * c)
                 else
                     lastLocked = 0;
 
-                DLOG("DEBUG [channelscan]: found %d total %d mux %d plps %d t2plp %d\n",foundNum,totalNum,otherMux,plps,t2plp[p]);
+                if (p == 0) Muxs = otherMux;
+                DLOG("DEBUG [channelscan]: found %d total %d mux %d muxs %d plps %d t2plp %d\n",foundNum,totalNum,otherMux,Muxs,plps,t2plp[p]);
                 if (plps == 0) break; //must be streamId = 0
-                if (!nitScan && plps > otherMux) break;
+                if (!nitScan && plps > Muxs) break;
             }
             if(lastLocked)return;
         }
@@ -877,6 +879,8 @@ void cScan::ScanDVB_C(cTransponder * tp, cChannel * c)
     int srtab[3] = { 6900, 6875, 6111 };
     int fixedModulation = 0;
     region = scanParameter_.region;
+
+    if (device->IsPrimaryDevice()) cDevice::PrimaryDevice()->StopReplay();
 
     /* For Nit transponders */
     frequency = tp->Frequency();
@@ -1000,6 +1004,8 @@ void cScan::ScanATSC(cTransponder * tp, cChannel * c)
     region = scanParameter_.region;
 
     frequency = tp->Frequency();
+
+    if (device->IsPrimaryDevice()) cDevice::PrimaryDevice()->StopReplay();
 
     /* ??? ATSC ??? For Nit transponders */
     frequency = tp->Frequency();
@@ -1152,10 +1158,6 @@ void cScan::ScanDVB_I(cTransponder * tp, cChannel * c)
                 newchannel->CopyTransponderData(c);
                 StateKey.Remove();
 #endif
-                if (!c->Vpid() && c->Apid(0))
-                    radioChannelNames.push_back(newchannel->Name());
-                else
-                    tvChannelNames.push_back(newchannel->Name());
             }
             else
             {
@@ -1170,10 +1172,6 @@ void cScan::ScanDVB_I(cTransponder * tp, cChannel * c)
                 if (Channel->Frequency() != c->Frequency())
                     Channel->CopyTransponderData(c);
 #endif
-                if (!c->Vpid() && c->Apid(0))
-                    radioChannelNames.push_back(Channel->Name());
-                else
-                    tvChannelNames.push_back(Channel->Name());
             }
 /*---------- scan pids in PAT PMT without SDT -------------------------------------*/
             services = ScanServices(true);
