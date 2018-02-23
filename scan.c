@@ -488,9 +488,28 @@ void cScan::ScanNitServices()
 
     WaitForRotorMovement(cardnr);
 
+    /* use vdr native positioner support */
+    if(device->Positioner())
+    {
+        while(device->Positioner()->IsMoving())
+        {
+            sleep(1);
+        }
+    }
+
+
     while (!nitFilter_->EndOfScan() && (time(NULL) - start < (SCAN_DELAY * 4) && (cMenuChannelscan::scanState == ssGetTransponders || cMenuChannelscan::scanState == ssGetChannels)))
     {
         WaitForRotorMovement(cardnr);
+
+        /* use vdr native positioner support */
+        if(device->Positioner())
+        {
+            while(device->Positioner()->IsMoving())
+            {
+                sleep(1);
+            }
+        }
 
         if (nitFilter_->Found())
             start = time(NULL);
@@ -673,6 +692,15 @@ void cScan::ScanDVB_S(cTransponder * tp, cChannel * c)
         }
         else                    // switch succeeded
         {
+            /* use vdr native positioner support */
+            if(device->Positioner())
+            {
+                while(device->Positioner()->IsMoving())
+                {
+                    sleep(1);
+                }
+            }
+
             waitSignal();
 
             if (lastLocked)
@@ -1586,6 +1614,15 @@ void cScan::Action()
     while (Running() && cMenuChannelscan::scanState == ssGetChannels)
     {
         WaitForRotorMovement(cardnr);
+
+        /* use vdr native positioner support */
+        if(device->Positioner())
+        {
+            while(device->Positioner()->IsMoving())
+            {
+                sleep(1);
+            }
+        }
 
         DEBUG_SCAN("DEBUG [channelscan]: loop through  transponders ++++  size %d ++++++++\n", (int)transponders.v_tp_.size());
         unsigned int oldTransponderMapSize = transponderMap.size();

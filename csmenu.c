@@ -457,13 +457,13 @@ void cMenuChannelscan::TunerDetection() {
                         }
                         if (stp == TERR2)
                         {
-                            asprintf(&txt, "%d %s (%s %i)", srcTuners + 1, tr("DVB-T2 - Terrestrial"), tr("Tuner"), tuner);
+                            asprintf(&txt, "%d %s (%s %i)", srcTuners + 1, tr("DVB-T2 - Terrestrial"), tr("Device"), tuner + 1);
                         }
                         else
                         {
                             if (dvbdevice->ProvidesDeliverySystem(SYS_DVBT))                      //DVB-T
                             {
-                                asprintf(&txt, "%d %s (%s %i)", srcTuners + 1, tr("DVB-T - Terrestrial"), tr("Tuner"), tuner);
+                                asprintf(&txt, "%d %s (%s %i)", srcTuners + 1, tr("DVB-T - Terrestrial"), tr("Device"), tuner + 1);
                                 stp = TERR;
                             }
                         }
@@ -473,7 +473,7 @@ void cMenuChannelscan::TunerDetection() {
                         {
                             char *txt = NULL;
                             mtp = 0;
-                            asprintf(&txt, "%d %s (%s %i)", srcTuners + 1, tr("DMB-TH"), tr("Tuner"), tuner);
+                            asprintf(&txt, "%d %s (%s %i)", srcTuners + 1, tr("DMB-TH"), tr("Device"), tuner + 1);
                             stp = DMB_TH;
                             if (txt) TunerAdd(tuner,adapter,frontend,stp,mtp,txt);
                         }
@@ -482,7 +482,7 @@ void cMenuChannelscan::TunerDetection() {
                         {
                             char *txt = NULL;
                             mtp = 0;
-                            asprintf(&txt, "%d %s (%s %i)", srcTuners + 1, tr("ISDB-T"), tr("Tuner"), tuner);
+                            asprintf(&txt, "%d %s (%s %i)", srcTuners + 1, tr("ISDB-T"), tr("Device"), tuner + 1);
                             stp = ISDB_T;
                             if (txt) TunerAdd(tuner,adapter,frontend,stp,mtp,txt);
                         }
@@ -512,11 +512,11 @@ void cMenuChannelscan::TunerDetection() {
                         }
                         if (stp == TERR2)
                         {
-                            asprintf(&txt, "%d %s (%s %i)", srcTuners + 1, tr("DVB-T2 - Terrestrial"), tr("Tuner"), tuner);
+                            asprintf(&txt, "%d %s (%s %i)", srcTuners + 1, tr("DVB-T2 - Terrestrial"), tr("Device"), tuner + 1);
                         }
                         else                                                                      //DVB-T
                         {
-                            asprintf(&txt, "%d %s (%s %i)", srcTuners + 1, tr("DVB-T - Terrestrial"), tr("Tuner"), tuner);
+                            asprintf(&txt, "%d %s (%s %i)", srcTuners + 1, tr("DVB-T - Terrestrial"), tr("Device"), tuner + 1);
                             stp = TERR;
                         }
                         if (txt) TunerAdd(tuner,adapter,frontend,stp,mtp,txt);
@@ -526,7 +526,7 @@ void cMenuChannelscan::TunerDetection() {
                 {
                     char *txt = NULL;
                     mtp = 0;
-                    asprintf(&txt, "%d %s (%s %i)", srcTuners + 1, tr("DVB-C - Cable"), tr("Tuner"), tuner);
+                    asprintf(&txt, "%d %s (%s %i)", srcTuners + 1, tr("DVB-C - Cable"), tr("Device"), tuner + 1);
                     stp = CABLE;
                     if (txt) TunerAdd(tuner,adapter,frontend,stp,mtp,txt);
                 }
@@ -557,13 +557,13 @@ void cMenuChannelscan::TunerDetection() {
                         }
                         if (stp == SATS2)
                         {
-                            asprintf(&txt, "%d %s (%s %i)", srcTuners + 1, tr("DVB-S2 - Satellite"), tr("Tuner"),  tuner);
+                            asprintf(&txt, "%d %s (%s %i)", srcTuners + 1, tr("DVB-S2 - Satellite"), tr("Device"),  tuner + 1);
                         }
                         else
                         {
                             if (dvbdevice->ProvidesDeliverySystem(SYS_DVBS))                      //DVB-S
                             {
-                                asprintf(&txt, "%d %s (%s %i)", srcTuners + 1, tr("DVB-S - Satellite"), tr("Tuner"),  tuner);
+                                asprintf(&txt, "%d %s (%s %i)", srcTuners + 1, tr("DVB-S - Satellite"), tr("Device"),  tuner + 1);
                                 stp = SAT;
                             }
                         }
@@ -573,7 +573,7 @@ void cMenuChannelscan::TunerDetection() {
                     {
                         mtp = 1; //multistream
                         stp = SATS2;
-                        asprintf(&txt, "%d %s (%s %i)", srcTuners + 1, tr("DVB-S2 - Satellite"), tr("Tuner"),  tuner);
+                        asprintf(&txt, "%d %s (%s %i)", srcTuners + 1, tr("DVB-S2 - Satellite"), tr("Device"),  tuner + 1);
                         if (txt) TunerAdd(tuner,adapter,frontend,stp,mtp,txt);
                     }
                     ::Setup.DiSEqC = oldDiSEqC;   //restore DiSEqC
@@ -582,7 +582,7 @@ void cMenuChannelscan::TunerDetection() {
                 {
                     char *txt = NULL;
                     mtp = 0;
-                    asprintf(&txt, "%d %s (%s %i)", srcTuners + 1, tr("DVB-IP - Network"), tr("Device"), frontend);
+                    asprintf(&txt, "%d %s (%s %i)", srcTuners + 1, tr("DVB-IP - Network"), tr("Device"), tuner + 1);
                     stp = IPTV;
                     if (txt) TunerAdd(tuner,adapter,frontend,stp,mtp,txt);
                 }
@@ -590,7 +590,7 @@ void cMenuChannelscan::TunerDetection() {
                 {
                     char *txt = NULL;
                     mtp = 0;
-                    asprintf(&txt, "%d %s (%s %i)", srcTuners + 1, tr("Analog"), tr("Tuner"), tuner);
+                    asprintf(&txt, "%d %s (%s %i)", srcTuners + 1, tr("Analog"), tr("Device"), tuner + 1);
                     stp = ANALOG;
                     if (txt) TunerAdd(tuner,pvrCard,frontend,stp,mtp,txt); //frontend$ = /dev/video$
                     pvrCard++; //how many pvr card
@@ -599,7 +599,7 @@ void cMenuChannelscan::TunerDetection() {
                 {
                     char *txt = NULL;
                     mtp = 0;
-                    asprintf(&txt, "%d %s (%s %i)", srcTuners + 1, tr("ATSC"), tr("Tuner"), tuner);
+                    asprintf(&txt, "%d %s (%s %i)", srcTuners + 1, tr("ATSC"), tr("Device"), tuner + 1);
                     stp = ATSC;
                     if (txt) TunerAdd(tuner,adapter,frontend,stp,mtp,txt);
                 }
@@ -2008,7 +2008,7 @@ eOSState cMyMenuEditSrcItem::ProcessKey(eKeys Key)
     {
         if (NORMALKEY(Key) == kLeft)    // TODO might want to increase the delta if repeated quickly?
         {
-            if (cSource::IsSat(source->Code()) && !cPluginManager::GetPlugin("mcli") && Setup.DiSEqC > 0)
+            if (cSource::IsSat(source->Code()) && !cPluginManager::GetPlugin("mcli") && Setup.DiSEqC > 0 && !Setup.UsePositioner)
             {
                 source = oldSrc;
                 while (!found && source && (source->Code() & cSource::stSat))
@@ -2039,7 +2039,7 @@ eOSState cMyMenuEditSrcItem::ProcessKey(eKeys Key)
         }
         else if (NORMALKEY(Key) == kRight)
         {
-            if (cSource::IsSat(source->Code()) && !cPluginManager::GetPlugin("mcli") && Setup.DiSEqC > 0)
+            if (cSource::IsSat(source->Code()) && !cPluginManager::GetPlugin("mcli") && Setup.DiSEqC > 0 && !Setup.UsePositioner)
             {
                 source = oldSrc;
                 while (!found && source && (source->Code() & cSource::stSat))
@@ -2063,9 +2063,17 @@ eOSState cMyMenuEditSrcItem::ProcessKey(eKeys Key)
             {
                 if (source && source->Next())
                 {
-                    found = true;
                     source = (cSource *) source->Next();
-                    *value = source->Code();
+                    /* select sat source only */
+#if VDRVERSNUM < 20101
+                    if(cSource::IsSat(source->Code()))
+#else
+                    if(cSource::IsSat(source->Code()) && source->Code() != (cSource::stSat | cSource::st_Any))
+#endif
+                    {
+                        found = true;
+                        *value = source->Code();
+                    }
                 }
             }
         }
