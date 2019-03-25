@@ -76,9 +76,6 @@ cScan::cScan()
     ::Setup.CurrentChannel = cDevice::CurrentChannel();
 
     newChannels = 0;
-#ifndef DEVICE_ATTRIBUTES
-    fd_frontend = -1;
-#endif
     cardnr = -1;
     transponderNr = 0;
     channelNumber = 0;
@@ -109,11 +106,6 @@ cScan::~cScan()
     if (cMenuChannelscan::scanState <= ssGetChannels)
         cMenuChannelscan::scanState = ssInterrupted;
     scanning_on_receiving_device = false;
-
-#ifndef DEVICE_ATTRIBUTES
-    if (fd_frontend > 0)
-        close(fd_frontend);
-#endif
 
     if (nitFilter_)
     {
@@ -214,22 +206,8 @@ bool cScan::StartScanning(cScanParameters * scp)
     DEBUG_SCAN("SET DEBUG [scan.c] scanning_on_receiving_device %d  TRUE \n", cardnr);
     scanning_on_receiving_device = true;
 
-    if (!cDevice::GetDevice(cardnr)) return false;
-
-#ifndef DEVICE_ATTRIBUTES
-    if (sourceType != IPTV && strcmp(cDevice::GetDevice(cardnr)->DeviceType(),"SAT>IP") && sourceType != ANALOG)
-    {
-        char buffer[265];
-        snprintf(buffer, sizeof(buffer), "/dev/dvb/adapter%d/frontend%d", scp->adapter, scp->frontend);
-        fd_frontend = open(buffer, O_RDONLY | O_NONBLOCK);
-        if (fd_frontend <= 0)
-        {
-            esyslog("cant open device: %s ", buffer);
-            cMenuChannelscan::scanState = ssDeviceFailure;
-            return false;
-        }
-    }
-#endif
+    if (!cDevice::GetDevice(cardnr))
+        return false;
 
     Start();
     return true;
@@ -288,11 +266,6 @@ uint16_t cScan::getSignal()
 {
     uint16_t value = 0;
 #ifndef DEVICE_ATTRIBUTES
-    if (fd_frontend > 0)
-    {
-       CHECK(ioctl(fd_frontend, FE_READ_SIGNAL_STRENGTH, &value));
-    }
-    else
        value = device->SignalStrength();
 #else
     if (device)
@@ -309,11 +282,6 @@ uint16_t cScan::getSNR()
 {
     uint16_t value = 0;
 #ifndef DEVICE_ATTRIBUTES
-    if (fd_frontend > 0)
-    {
-       CHECK(ioctl(fd_frontend, FE_READ_SNR, &value));
-    }
-    else
        value = device->SignalQuality();
 #else
     if (device)
@@ -331,11 +299,6 @@ uint16_t cScan::getStatus()
     fe_status_t value;
     memset(&value, 0, sizeof(fe_status_t));
 #ifndef DEVICE_ATTRIBUTES
-    if (fd_frontend > 0)
-    {
-       CHECK(ioctl(fd_frontend, FE_READ_STATUS, &value));
-    }
-    else
        value = device->HasLock(0) ? FE_HAS_LOCK : FE_TIMEDOUT;
 #else
     if (device)

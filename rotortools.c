@@ -156,6 +156,9 @@ bool GetSignal(int cardIndex, fe_status_t * status)
 
 bool TunerIsRotor(int nrTuner)
 {
+    if (cPluginManager::GetPlugin("dynamite"))
+        return false;
+
     cPlugin *p = cPluginManager::GetPlugin("netcvrotor");
     if (p)
     {

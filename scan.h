@@ -81,9 +81,6 @@ class cScan:public cThread
 
     cScanParameters scanParameter_;
 
-#ifndef DEVICE_ATTRIBUTES
-    int fd_frontend;
-#endif
     cDevice *device;
     cChannel *channel;
     int origUpdateChannels;

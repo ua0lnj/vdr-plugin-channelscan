@@ -52,7 +52,6 @@
 #include <zlib.h>
 
 #define CHNUMWIDTH 19
-#define DVBFRONTEND "/dev/dvb/adapter%d/frontend0"
 #define POLLDELAY 1
 #define MENUDELAY 3
 
@@ -380,6 +379,7 @@ void cMenuChannelscan::TunerDetection() {
 #endif
     int stp = 0;
     int mtp = 0;
+    int use_dynamite = 0;
     cChannel * c = new cChannel;
     cDvbTransponderParameters dtp;
     dtp.SetStreamId(1);
@@ -388,6 +388,10 @@ void cMenuChannelscan::TunerDetection() {
     dtp.SetModulation(QPSK);
     dtp.SetRollOff(ROLLOFF_35);
     dtp.SetCoderateH(FEC_3_4);
+
+    cPlugin *plug = cPluginManager::GetPlugin("dynamite");
+    if (plug)
+        use_dynamite = 1;
 
     for (int tuner = 0; tuner < MAXDEVICES; tuner++)
     {
@@ -468,23 +472,27 @@ void cMenuChannelscan::TunerDetection() {
                             }
                         }
                         if (txt) TunerAdd(tuner,adapter,frontend,stp,mtp,txt);
+
+                        if (!use_dynamite) //for prevent dynamite plugin crashing
+                        {
 #ifdef SYS_DTMB
-                        if (dvbdevice->ProvidesDeliverySystem(SYS_DTMB))                          //DMB-TH
-                        {
-                            char *txt = NULL;
-                            mtp = 0;
-                            asprintf(&txt, "%d %s (%s %i)", srcTuners + 1, tr("DMB-TH"), tr("Device"), tuner + 1);
-                            stp = DMB_TH;
-                            if (txt) TunerAdd(tuner,adapter,frontend,stp,mtp,txt);
-                        }
+                            if (dvbdevice->ProvidesDeliverySystem(SYS_DTMB))                          //DMB-TH
+                            {
+                                char *txt = NULL;
+                                mtp = 0;
+                                asprintf(&txt, "%d %s (%s %i)", srcTuners + 1, tr("DMB-TH"), tr("Device"), tuner + 1);
+                                stp = DMB_TH;
+                                if (txt) TunerAdd(tuner,adapter,frontend,stp,mtp,txt);
+                            }
 #endif
-                        if (dvbdevice->ProvidesDeliverySystem(SYS_ISDBT))                         //ISDBT
-                        {
-                            char *txt = NULL;
-                            mtp = 0;
-                            asprintf(&txt, "%d %s (%s %i)", srcTuners + 1, tr("ISDB-T"), tr("Device"), tuner + 1);
-                            stp = ISDB_T;
-                            if (txt) TunerAdd(tuner,adapter,frontend,stp,mtp,txt);
+                            if (dvbdevice->ProvidesDeliverySystem(SYS_ISDBT))                         //ISDBT
+                            {
+                                char *txt = NULL;
+                                mtp = 0;
+                                asprintf(&txt, "%d %s (%s %i)", srcTuners + 1, tr("ISDB-T"), tr("Device"), tuner + 1);
+                                stp = ISDB_T;
+                                if (txt) TunerAdd(tuner,adapter,frontend,stp,mtp,txt);
+                            }
                         }
                     }
                     if (satip) //sat>ip device
