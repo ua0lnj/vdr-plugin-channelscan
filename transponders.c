@@ -213,7 +213,7 @@ int cTransponders::channel2Frequency(int region, int channel, int &bandwidth)
         }
         if (channel == 7)
         {
-            return 178750000 - offset + (channel - 7) * 8000000;
+            return 179000000 - offset + (channel - 7) * 8000000;
         }
         if (channel >= 8 && channel <= 10)
         {
@@ -221,7 +221,7 @@ int cTransponders::channel2Frequency(int region, int channel, int &bandwidth)
         }
         if (channel == 11)
         {
-            return 210750000 - offset + (channel - 11) * 8000000;
+            return 211000000 - offset + (channel - 11) * 8000000;
         }
         if (channel == 12)
         {

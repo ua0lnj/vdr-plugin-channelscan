@@ -956,6 +956,7 @@ void cMenuChannelscan::Set()
 
     AddBlankLineItem(blankLines);
     //Check this
+
     SetInfoBar();
 
 #ifdef REELVDR
@@ -1025,6 +1026,7 @@ void cMenuChannelscan::SetInfoBar() // Check with  cMenuScanActive
     LOCK_CHANNELS_READ;
     Add(new cMenuInfoItem(tr("Entries in current channellist"), Channels->MaxNumber()));
 #endif
+    AddBlankLineItem(1,true);
 }
 
 void cMenuChannelscan::Store()
@@ -1394,12 +1396,12 @@ cMenuChannelscan::~cMenuChannelscan()
 }
 
 // taken fron vdr/menu.c
-void cMenuChannelscan::AddBlankLineItem(int lines)
+void cMenuChannelscan::AddBlankLineItem(int lines, bool selectable)
 {
     for (int i = 0; i < lines; i++)
     {
         cOsdItem *item = new cOsdItem;
-        item->SetSelectable(false);
+        item->SetSelectable(selectable);
         item->SetText(strndup(" ", 1), false);
         Add(item);
     }

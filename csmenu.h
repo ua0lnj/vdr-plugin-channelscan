@@ -165,7 +165,7 @@ class cMenuChannelscan:public cOsdMenu
     void SwitchChannel();
     void DiseqShow();
     void Store();
-    void AddBlankLineItem(int line);
+    void AddBlankLineItem(int line, bool selectable = false);
     static int timeout;
     static volatile int scanState;
     ///< internal scan state used to display correct messages in menues

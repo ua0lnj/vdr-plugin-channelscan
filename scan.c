@@ -1110,7 +1110,7 @@ void cScan::ScanDVB_I(cTransponder * tp, cChannel * c)
         return;
 
     tp->SetTransponderData(c, sourceCode);
-
+    cDevice::PrimaryDevice()->StopReplay();
     cDevice::PrimaryDevice()->SwitchChannel(c,true);
 
 /* ------ find channel with same parameters in vdr's channels---- */
