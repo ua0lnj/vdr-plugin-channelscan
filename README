@@ -6,8 +6,6 @@ Vdr version 2.0.0 and later are supported.
 
 Latest version see at https://bitbucket.org/ua0lnj/channelscan
 
-Forum see at http://www.forum.free-x.de/wbb/index.php
-
 *********************************************************************
 based on    channelscan-0.0.4b by kikko77 <kikko77@altervista.org>
 
@@ -37,7 +35,7 @@ DVB over IP (IPTV)
 This plugin scans udp multicast streams in selected ip subnet (need iptv plugin).
 
 SAT>IP (DVB-S2/DVB-C/DVB-T/DVB-T2)
-Scans like a normal DVB tuner (need sat>ip plugin).
+Scans like a normal DVB tuner (need satip plugin).
 
 
 Installation:
@@ -48,8 +46,8 @@ Installation:
 - if you want the selection of the satellites to work from west to east (recommended),
   copy the applied sources.conf to your vdr-config directory
 - compile vdr and plugins as usual
-- For compressed file support install libboost-iostreams-dev on build host 
-- The target machine needs libz and libbz2  
+- The target machine needs libz and libbz2
+- For transponders update needs wget
 
 
 Commands:
@@ -60,13 +58,15 @@ Press Back to stop a current scan.
 
 
 Notes:
-========
+======
 DTMB and ISDB-T works with patched vdr (at this moment).
 
 
 DVB-S/DVB-S2 Transponders list:
-===================
+===============================
 - Can be .tpl or .ini files from vdr-config-dir/plugins/transponders
+You can change it in plugin's setup menu.
+
 - Format is:
 14=10985,H,35007,34,S2;8PSK;6555
 nn=freq,pol,sr,fec,sys;mod;stream
@@ -81,6 +81,25 @@ stream - stream id for multistream
 
 - if no sys present, use DVB_SYSTEM_0 and QPSK
 - if mod set to ALL, will be tried all modulations
+
+
+
+DVB-S/DVB-S2 Nit scan:
+======================
+-Sat.ini, Sat.tpl, SatNIT.ini, SatNIT.tpl
+Аny of these files can be in vdr-config-dir/plugins/transponders
+
+Must contain one transponder with a nit table for each satellite
+Transponders format as in transponder list.
+If line commented or empty, the scanner uses Nit data from all scanned transponders.
+
+
+
+Transponders list update:
+========================
+- Sat.url file from vdr-config-dir/plugins/transponders
+Each line is a link to a transponders file from Internet.
+Example http://www.fastsatfinder.com/bin/Transponders.zip
 
 ******************************* WARNING *******************************
  
