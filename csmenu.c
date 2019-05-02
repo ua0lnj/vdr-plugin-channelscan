@@ -257,6 +257,11 @@ cMenuChannelscan::cMenuChannelscan(int src, int freq, int symrate, char pol, boo
     srScanTexts[1] = tr("Try all 6900/6875/6111");
     srScanTexts[2] = tr("Manual");
 
+    iptvTexts[0] = tr("Set ip subnet address");
+    iptvTexts[1] = tr("Use config file");
+
+    iptvScanMode = 0;
+
     srScanMode = 0;
 
     double aspect = 0;
@@ -734,10 +739,17 @@ void cMenuChannelscan::Set()
         case IPTV:
             if (scanMode != eModeManual)
             {
-                Add(new cMenuInfoItem(tr("UDP multicast search")));
-                Add(new cMyMenuEditIpItem(tr("Start ip address"), &startIp[0],&startIp[1],&startIp[2],&startIp[3]));
-                Add(new cMyMenuEditIpItem(tr("End   ip address"), &endIp[0],&endIp[1],&endIp[2],&endIp[3]));
-                Add(new cMenuEditIntItem(tr("UDP port"), &port, 0, 65525));
+                Add(new cMenuEditStraItem(tr("UDP multicast scan mode"), &iptvScanMode, 2, iptvTexts));
+                if (iptvScanMode == 0)
+                {
+                    Add(new cMyMenuEditIpItem(tr("Start ip address"), &startIp[0],&startIp[1],&startIp[2],&startIp[3]));
+                    Add(new cMyMenuEditIpItem(tr("End   ip address"), &endIp[0],&endIp[1],&endIp[2],&endIp[3]));
+                    Add(new cMenuEditIntItem(tr("UDP port"), &port, 0, 65525));
+                }
+                else
+                {
+                    AddBlankLineItem(3);
+                }
                 Add(new cMenuEditStrItem(tr("Provider's Name"), provider, sizeof(provider)));
                 Add(new cMenuEditIntItem(tr("Timeout, sec"), &timeout,1,10));
                 blankLines += 3;
@@ -1081,6 +1093,7 @@ eOSState cMenuChannelscan::ProcessKey(eKeys Key)
     int oldanalogType = analogType;
     int oldinputStat = inputStat;
     int oldstdStat = stdStat;
+    int oldiptvScanMode = iptvScanMode;
 
     // bool removeFlag = false; // for removing channels after "New Channel (auto added)" bouquet
     std::vector < cChannel * >ChannelsToRemove;
@@ -1110,54 +1123,22 @@ eOSState cMenuChannelscan::ProcessKey(eKeys Key)
     {
 
         sourceType = srcTypes[currentTuner];
-        if (sourceType == IPTV) frequency = startIp[3] * 10;
 
         scp.device = srcDevice[currentTuner];
-
-        switch (sourceType)
-        {
-        case ANALOG:
-            scp.adapter = pvrCard;
-            break;
-        default:
-            if (srcAdapter[currentTuner] == device_SATIP && siFrontend > 1)
-                scp.adapter = srcAdapter[currentTuner] + siFrontend;
-            else
-                scp.adapter = srcAdapter[currentTuner];
-            break;
-        }
-
         scp.frontend = srcFrontend[currentTuner];
         scp.type = sourceType;  // source type
-        scp.source = source;
-        scp.frequency = frequency;
-        switch (sourceType)
-        {
-        case DMB_TH:
-            scp.system = DTMB;
-            break;
-        case ISDB_T:
-            scp.system = ISDBT;
-            break;
-        case ANALOG:
-            scp.system = stdStat;
-            break;
-        default:
-            scp.system = sysStat;
-            break;
-        }
         scp.bandwidth = bandwidth;
-        scp.polarization = (sourceType == ANALOG) ? inputStat : polarization;
+        scp.polarization = polarization; // overwrite for ANALOG
         scp.symbolrate = symbolrate;
         scp.fec = (sysStat == DVB_SYSTEM_2) ? fecStatS2 : fecStat;
         scp.detail = scanMode | (detailFlag << 1);
         ///<  detailFlag=1 -> DVB-T offset search
         ///<  espacialy for british broadcasters
-        scp.modulation = (sourceType == ANALOG) ? analogType : modStat;
+        scp.modulation = modStat;        // overwrite for ANALOG
         ///< on S2 value 5 means all mods
         scp.symbolrate_mode = srScanMode;
         scp.nitscan = numNITScan;
-        scp.region = regionStat + (sourceType == ANALOG ? 100 : 0);
+        scp.region = regionStat;         // overwrite for ANALOG
         if (srcMS[currentTuner])
             scp.streamId = plpStat ? streamId : NO_STREAM_ID_FILTER; // for auto
         else
@@ -1165,7 +1146,54 @@ eOSState cMenuChannelscan::ProcessKey(eKeys Key)
 //        scp.t2systemId = t2systemId;
         memcpy(&scp.startip,startIp,sizeof(scp.startip));
         memcpy(&scp.endip,endIp,sizeof(scp.endip));
-        scp.port = (sourceType != IPTV) ? channel : port; //port for iptv, channel num for other
+        scp.port = channel;    //overwrite port for iptv, channel num for other
+        scp.ipmode = iptvScanMode;
+
+        if (srcAdapter[currentTuner] == device_SATIP && siFrontend > 1)
+            scp.adapter = srcAdapter[currentTuner] + siFrontend;      //overwrite for ANALOG
+        else
+                scp.adapter = srcAdapter[currentTuner];
+
+        switch (sourceType)
+        {
+        case SAT:
+        case SATS2:
+            scp.source = source;
+            scp.system = sysStat;
+            break;
+        case CABLE:
+            scp.source = 0x4000;
+            scp.system = sysStat;
+            break;
+        case TERR:
+        case TERR2:
+            scp.source = 0xC000;
+            scp.system = sysStat;
+            break;
+        case DMB_TH:
+            scp.source = 0xC100;
+            scp.system = DTMB;
+            break;
+        case ISDB_T:
+            scp.source = 0xC200;
+            scp.system = ISDBT;
+            break;
+        case ANALOG:
+            scp.system = stdStat;
+            scp.adapter = pvrCard;
+            scp.polarization = inputStat;
+            scp.modulation = analogType;
+            scp.region = regionStat + 100;
+            break;
+        case IPTV:
+            scp.source = 0xE000;
+            frequency = startIp[3] * 10;
+            scp.port = port;
+        default:
+            break;
+        }
+
+        scp.frequency = frequency;
 
 #if 0
         DEBUG_CSMENU(" DEBUG LOAD TRANSPONDER(S)  ---- \n" " Scanning on Tuner \t%d\n" " SourceType  \t%d \n" " Source \t%d \n" " frequency \t%d \n" " Bandwidth \t%d \n" " Polarisation \t%c \n" " Symbolrate \t%d \n" " fec Stat  \t%d \n" " detail search \t%d \n" " modulationStat  \t%d \n" " Symbolrate mode \t%d region %d\n", scp.device, scp.type, scp.source, scp.frequency, scp.bandwidth, scp.polarization, scp.symbolrate, scp.fec, scp.detail, scp.modulation, scp.symbolrate_mode, scp.region);
@@ -1260,7 +1288,6 @@ eOSState cMenuChannelscan::ProcessKey(eKeys Key)
             //printf("\n\nAddNewChannelsTo: %d\n\n\n", addNewChannelsTo);
 
             ScanSetup = data_;  // when kRed is pressed, use the selected filters
-            scp.source = sourceType == CABLE ? 0x4000 : sourceType == (TERR || TERR2) ? 0xC000 : source;
 
             ///< TERR:  0; CABLE: 1;  SAT:   2; SATS2: 3
 
@@ -1343,7 +1370,7 @@ eOSState cMenuChannelscan::ProcessKey(eKeys Key)
     {
         if (oldDetailedScan != detailedScan || oldScanMode != scanMode || oldsysStat != sysStat || oldExpertSettings != expertSettings || oldSourceStat != currentTuner 
         || oldSRScanMode != srScanMode || oldregionStat != regionStat || oldmodStat != modStat || oldanalogType != analogType || oldinputStat != inputStat 
-        || oldstdStat != stdStat || oldplpStat != plpStat)
+        || oldstdStat != stdStat || oldplpStat != plpStat || oldiptvScanMode != iptvScanMode)
         {
             oldSourceStat = currentTuner;
             if (sysStat == DVB_SYSTEM_1 && sourceType != CABLE){

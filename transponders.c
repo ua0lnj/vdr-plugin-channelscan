@@ -879,9 +879,18 @@ void cTransponders::Load(cScanParameters * scp)
     else if (scp->type == IPTV)
     {
         position_ = tr("IPTV");
-        if (scp->frequency == 1)
-            CalcIptvTpl(0, scp);
-        else
+        if (scp->frequency == 1) //scan ip range
+        {
+            if (scp->ipmode == 0)
+                CalcIptvTpl(0, scp);
+            else
+            {
+                fileName_ = TplFileName(sourceCode_);
+                // load ip subnet
+                LoadIpl(fileName_, scp);
+            }
+        }
+        else                    //scan single ip
         {
             int channel = 0;
             int sidScan = 1;
@@ -1164,6 +1173,80 @@ bool cTransponders::LoadTpl(const string & tplFileName)
     transponderList.close();
 
     return true;
+}
+
+bool cTransponders::LoadIpl(const string & iplFileName, cScanParameters * scp)
+{
+
+    DEBUG_TRANSPONDER(DBGT "LoadIpl  %s\n", iplFileName.c_str());
+
+    ifstream transponderList(iplFileName.c_str(), std::ios_base::in | std::ios_base::binary);
+    stringstream buffer;
+
+    if (!transponderList)
+    {
+        esyslog("ERROR: [channelscan] can`t open LoadIpls %s \n", iplFileName.c_str());
+        return false;
+    }
+
+    int c;
+    /* copy byte-wise */
+    while (transponderList.good())
+    {
+        c = transponderList.get();
+        if (transponderList.good())
+            buffer.put(c);
+    }
+
+    string line;
+    while (!buffer.eof())
+    {
+        int pos=0;
+        size_t find;
+
+        getline(buffer, line);
+        // parse subnet start address
+        for(int a = 0;a < 4; a++)
+        {
+            if(a < 3)
+                find = line.find('.', pos);
+            else
+                find = line.find('-', pos);
+            if (find != line.npos)
+            {
+                scp->startip[a]=stoi(line.substr(pos,find-pos));
+                pos=find+1;
+            }
+            else goto error;
+        }
+        // parse subnet end address
+        for(int a = 0;a < 4; a++)
+        {
+            if(a < 3)
+                find = line.find('.', pos);
+            else
+                find = line.find(':', pos);
+            if (find != line.npos)
+            {
+                scp->endip[a]=stoi(line.substr(pos,find-pos));
+                pos=find+1;
+            }
+            else goto error;
+        }
+        //parse ip port
+        find = line.length();
+        scp->port=stoi(line.substr(pos,find-pos));
+
+        DEBUG_TRANSPONDER(DBGT "LoadIpl subnet start %d.%d.%d.%d end %d.%d.%d.%d port %d\n",
+            scp->startip[0], scp->startip[1], scp->startip[2], scp->startip[3], scp->endip[0], scp->endip[1], scp->endip[2], scp->endip[3], scp->port);
+        // create transponders
+        CalcIptvTpl(0, scp);
+    }
+    transponderList.close();
+    return true;
+error:
+    transponderList.close();
+    return false;
 }
 
 /*
@@ -1514,6 +1597,8 @@ string cTransponders::TplFileName(int satCodec)
     }
     else if (satCodec == 1)
         tmp += "NIT";
+    else if (satCodec == 0xE000)
+        tmp += "Iptv";
     else
     {
         if (!ScanSetup.tplFileType)

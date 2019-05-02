@@ -485,3 +485,12 @@ msgstr "Транспондеры обновлены!"
 
 msgid "Transponders File Type"
 msgstr "Тип файла транспондеров"
+
+msgid "Set ip subnet address"
+msgstr "Установить адрес подсети"
+
+msgid "Use config file"
+msgstr "Использовать файл настроек"
+
+msgid "UDP multicast scan mode"
+msgstr "режим UDP поиска"

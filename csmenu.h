@@ -112,6 +112,7 @@ class cMenuChannelscan:public cOsdMenu
     const char *sBwTexts[4];
     const char *regionTexts[6];
     const char *bandTexts[2];
+    const char *iptvTexts[2];
     const char *addNewChannelsToTexts[3];
     int addNewChannelsTo;
 
@@ -129,6 +130,7 @@ class cMenuChannelscan:public cOsdMenu
     int numNITScan;
     int analogType;
     int inputStat;
+    int iptvScanMode;
     int stdStat;
     int siFrontend;
 

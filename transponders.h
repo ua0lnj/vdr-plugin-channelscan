@@ -141,6 +141,7 @@ struct cScanParameters
     int startip[4];             // IPTV ipv4 start address
     int endip[4];               // IPTV ipv4 end address
     int port;                   // IPTV: port. DVB & Analog: channel number
+    int ipmode;                 // IPTV scan mode
 };
 
 
@@ -375,6 +376,7 @@ class cTransponders
 
     bool LoadNitTransponder(int Source);
     bool LoadTpl(const std::string & tpList);
+    bool LoadIpl(const std::string & ipList, cScanParameters * scp);
     bool GetTpl();
 //    void Add(int Source, const cScanParameters & scp);
     void CalcTerrTpl(bool Complete, cScanParameters * scp);
