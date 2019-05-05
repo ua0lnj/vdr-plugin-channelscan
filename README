@@ -68,6 +68,7 @@ DVB-S/DVB-S2 Transponders list:
 You can change it in plugin's setup menu.
 
 - Format is:
+[DVB]
 14=10985,H,35007,34,S2;8PSK;6555
 nn=freq,pol,sr,fec,sys;mod;stream
 nn     - transponder number
@@ -83,7 +84,6 @@ stream - stream id for multistream
 - if mod set to ALL, will be tried all modulations
 
 
-
 DVB-S/DVB-S2 Nit scan:
 ======================
 -Sat.ini, Sat.tpl, SatNIT.ini, SatNIT.tpl
@@ -94,19 +94,30 @@ Transponders format as in transponder list.
 If line commented or empty, the scanner uses Nit data from all scanned transponders.
 
 
-
-Transponders list update:
-========================
+DVB-S Transponders list update:
+===============================
 - Sat.url file from vdr-config-dir/plugins/transponders
 Each line is a link to a transponders file from Internet.
 Example http://www.fastsatfinder.com/bin/Transponders.zip
 
+
+IPTV Transponder list:
+======================
+-Iptv.tpl or Iptv.ini files from vdr-config-dir/plugins/transponders
+
+-Format is:
+x.x.x.x-x.x.x.x:x
+
+239.0.0.1-239.0.0.255:1234
+start ipv4 address-end ipv4 addres:port
+
+
 ******************************* WARNING *******************************
- 
+
 This plugin works with vdr >= 2.0.0
- 
+
 ***********************************************************************
- 
- 
+
+
 -----------------------------------------------------------------------
 A special thanks to Klaus, for his work on vdr...
