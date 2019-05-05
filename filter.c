@@ -908,6 +908,7 @@ void SdtFilter::Process(u_short Pid, u_char Tid, const u_char * Data, int Length
                     case 0x11: // digital television service MPEG-2 HD  ??? never seen !
                     case 0x16:
                     case 0x19: // digital television service MPEG-4 HD
+                    case 0x20: // digital television service H.265 UHD
                     case 0xC3: // some french channels like kiosk
                     case 0x86: // ?? Astra 28.2 MPEG-4 HD
 
@@ -919,7 +920,7 @@ void SdtFilter::Process(u_short Pid, u_char Tid, const u_char * Data, int Length
                                 break;
                             }
 */
-                            if (!(sd->getServiceType() == 0x11 || sd->getServiceType() == 0x19) && (AddServiceType == ST_HDTV_ONLY || AddServiceType == ST_HDTV_FTA_ONLY))  // (! HD TV && HDOnly) break
+                            if (!(sd->getServiceType() == 0x11 || sd->getServiceType() == 0x19 || sd->getServiceType() == 0x20) && (AddServiceType == ST_HDTV_ONLY || AddServiceType == ST_HDTV_FTA_ONLY))  // (! HD TV && HDOnly) break
                             {
                                 DEBUG_SDT(DBGSDT "+++++++++++++++  NO Found HD CHANNEL: Skip %s +++++++++++++++ \n", NameBufDeb);
                                 break;
@@ -980,6 +981,7 @@ void SdtFilter::Process(u_short Pid, u_char Tid, const u_char * Data, int Length
                                     case 0x11:
                                     case 0x16:
                                     case 0x19:
+                                    case 0x20:
                                     case 0xC3:
                                     case 0x86:
                                         tvChannelNames.push_back(NameBuf);  // if service wanted
