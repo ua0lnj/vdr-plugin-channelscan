@@ -203,9 +203,10 @@ bool cPluginChannelscan::SetupParse(const char *Name, const char *Value)
     if (!strcasecmp(Name, "Provider")) {
         strn0cpy(cMenuChannelscan::provider, Value, sizeof(cMenuChannelscan::provider));
         return true;
-    } else if (!strcasecmp(Name, "tplFileType"))
+    } else if (!strcasecmp(Name, "tplFileType")) {
         ScanSetup.tplFileType = atoi(Value);
-    else
+        return true;
+    } else
         return false;
 }
 

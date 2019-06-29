@@ -76,7 +76,7 @@ class PatFilter:public cFilter
     int pmtPid[CMAXPMTENTRIES];
   int pmtId[MAXPMTENTRIES];
     int Sids[CMAXPMTENTRIES];
-    uint64_t pmtVersion[CMAXPMTENTRIES];
+    int pmtVersion[CMAXPMTENTRIES];
     int numPmtEntries;
   int GetPmtPid(int Index) { return pmtId[Index] & 0x0000FFFF; }
   int MakePmtId(int PmtPid, int Sid) { return PmtPid | (Sid << 16); }

@@ -176,7 +176,7 @@ bool cScan::StartScanning(cScanParameters * scp)
     if (cMenuChannelscan::scanState != ssGetTransponders && transponders.v_tp_.size() == 0)
     {
         DEBUG_SCAN(DBGSCAN "  %s   return FALSE  \n", __PRETTY_FUNCTION__);
-        esyslog(ERR " Empty Transponderlist size %d\n",transponders.v_tp_.size());
+        esyslog(ERR " Empty Transponderlist size %d\n",(int)transponders.v_tp_.size());
         cMenuChannelscan::scanState = ssNoTransponder;
         return false;
     }
@@ -318,6 +318,7 @@ int cScan::ScanServices(bool noSDT)
     const time_t  tt = time(NULL);
     time_t tt_;
     char *strDate;
+    int a = 0;
     otherMux = 0;
 
     cMenuChannelscan::scanState = ssGetChannels;
@@ -427,9 +428,10 @@ int cScan::ScanServices(bool noSDT)
     }
 
     const time_t ttout = time(NULL);
-    asprintf(&strDate, "%s", asctime(localtime(&ttout)));
+    a = asprintf(&strDate, "%s", asctime(localtime(&ttout)));
     DEBUG_printf("%s OUT:%4.2fms: %s\n", __PRETTY_FUNCTION__, (float)difftime(ttout, tt) * 1000, strDate);
     free(strDate);
+    if (a) {}; //remove make warning
 
     return totalNum;
 }
@@ -512,7 +514,7 @@ void cScan::ScanDVB_S(cTransponder * tp, cChannel * c)
 
     int maxmods = scanParameter_.type == SATS2 ? 5 : 1;
     int lockTimeout;
-    int foundServices = 0;
+    int foundServices = 0, a = 0;
 
    // esyslog("%s cTransponder* tp = %x  cChannel *c = %x", __PRETTY_FUNCTION__);
 //    esyslog("maxmods = %d sys %d\n",maxmods, tp->System());
@@ -717,8 +719,9 @@ void cScan::ScanDVB_S(cTransponder * tp, cChannel * c)
     }
   const time_t ttout = time(NULL);
   char *strDate;
-  asprintf(&strDate,"%s", asctime(localtime(&ttout)));
+  a = asprintf(&strDate,"%s", asctime(localtime(&ttout)));
   DEBUG_printf("\n%s OUT:%4.2fsec: %s\n",__PRETTY_FUNCTION__,(float)difftime(ttout,tt),strDate);
+  if (a) {}; //remove make warning
 }
 
 //-------------------------------------------------------------------------
@@ -920,7 +923,7 @@ void cScan::ScanDVB_C(cTransponder * tp, cChannel * c)
         // try 64QAM/256QAM
         for (int mods = 5; mods < 7; mods++)
         {
-            if (!cMenuChannelscan::scanState == ssGetChannels)
+            if (cMenuChannelscan::scanState != ssGetChannels)
                 return;
 
             if (!fixedModulation)
@@ -1012,53 +1015,52 @@ void cScan::ScanATSC(cTransponder * tp, cChannel * c)
     if (tp->Modulation() != 0)
         fixedModulation = 1;
 
+    for (int mods = 0; mods < 2; mods++)
+    {
+        if (fixedModulation && mods != 0)
+            break;
 
-        for (int mods = 0; mods < 2; mods++)
+        if (cMenuChannelscan::scanState != ssGetChannels)
+            return;
+
+        if (!fixedModulation)
         {
-            if (fixedModulation && mods != 0)
-                break;
-
-            if (!cMenuChannelscan::scanState == ssGetChannels)
-                return;
-
-            if (!fixedModulation)
-            {
-                if (!mods)
-                    modulation = VSB_8;
-                else
-                    modulation = VSB_16;
-            }
-
-            tp->SetModulation(modulation);
-            tp->SetTransponderData(c, sourceCode);
-
-            /* SAT>IP use Rid to assign frontend */
-            if (scanParameter_.adapter > 200)
-                c->SetId(0, 0, 0, scanParameter_.adapter - 200);
-
-            if (!device->SwitchChannel(c, device->IsPrimaryDevice()))
-            {
-                esyslog(ERR "Primary SwitchChannel(c)  failed\n");
-                break;
-            }
-
-            if (lastLocked)
-            {
-                DEBUG_SCAN("Wait last lock %d \n", mods);
-                DEBUG_printf("Sleeping %s %d\n", __PRETTY_FUNCTION__, __LINE__);
-                sleep(1);       // avoid sticky last lock
-            }
-
-            if (device->HasLock(timeout))
-            {
-               DLOG(DBG "  ------ HAS LOCK ------\n");
-               ScanServices(); //atsc ??
-
-               lastLocked = 1;
-               return;
-            }
-            lastLocked = 0;
+            if (!mods)
+                modulation = VSB_8;
+            else
+                modulation = VSB_16;
         }
+
+        tp->SetModulation(modulation);
+        tp->SetTransponderData(c, sourceCode);
+
+        /* SAT>IP use Rid to assign frontend */
+        if (scanParameter_.adapter > 200)
+            c->SetId(0, 0, 0, scanParameter_.adapter - 200);
+
+        if (!device->SwitchChannel(c, device->IsPrimaryDevice()))
+        {
+            esyslog(ERR "Primary SwitchChannel(c)  failed\n");
+            break;
+        }
+
+        if (lastLocked)
+        {
+            DEBUG_SCAN("Wait last lock %d \n", mods);
+            DEBUG_printf("Sleeping %s %d\n", __PRETTY_FUNCTION__, __LINE__);
+            sleep(1);       // avoid sticky last lock
+        }
+
+        if (device->HasLock(timeout))
+        {
+            DLOG(DBG "  ------ HAS LOCK ------\n");
+            ScanServices(); //atsc ??
+
+            lastLocked = 1;
+            return;
+        }
+        lastLocked = 0;
+    }
 }
 
 //-------------------------------------------------------------------------
@@ -1406,7 +1408,7 @@ void cScan::ScanAnalog(cTransponder * tp, cChannel * c)
 void cScan::Action()
 {
     // the one and only "scanning = true" !
-    int i = 0;
+    int i = 0, a = 0;
     int sys = cardnr;           // for mcli-plugin, the system is tunneled over cardnr. It is *not* the device number!
 
     cPlugin *plug = cPluginManager::GetPlugin("mcli");
@@ -1453,7 +1455,7 @@ void cScan::Action()
         device = cDevice::GetDevice(cardnr);
         sys=sourceType;
     }
-    std::auto_ptr < cChannel > c(new cChannel);
+    std::unique_ptr < cChannel > c(new cChannel);
 
     cTransponders & transponders = cTransponders::GetInstance();
 
@@ -1647,13 +1649,13 @@ void cScan::Action()
                 fp = fopen("/tmp/cScan.log", "a");
                 const time_t tt = time(NULL);
                 char *strDate;
-                asprintf(&strDate, "%s", asctime(localtime(&tt)));
+                a = asprintf(&strDate, "%s", asctime(localtime(&tt)));
                 strDate[strlen(strDate) - 1] = 0;
-                fprintf(fp, "\n\n%s tp=%4d, %6d(%d) TV:%4d Radio:%4d in %3d sec", strDate, i, frequency, !alreadyScanned, tvChannelNames.size() - ntv, radioChannelNames.size() - nradio, (int)difftime(t_out, t_in));
+                fprintf(fp, "\n\n%s tp=%4d, %6d(%d) TV:%4d Radio:%4d in %3d sec", strDate, i, frequency, !alreadyScanned, (int)tvChannelNames.size() - ntv, (int)radioChannelNames.size() - nradio, (int)difftime(t_out, t_in));
                 fclose(fp);
 
                 fp = fopen("/tmp/tScan.log", "a");
-                fprintf(fp, "\n\ntp=%4d, %6d/%2d/%5d TV:%4d Radio:%4d in %3dsec new:%3d", i, frequency, (*tp)->Modulation(), (*tp)->Symbolrate(), tvChannelNames.size() - ntv, radioChannelNames.size() - nradio, (int)difftime(t_out, t_in), tvChannelNames.size() - ntv + radioChannelNames.size() - nradio);
+                fprintf(fp, "\n\ntp=%4d, %6d/%2d/%5d TV:%4d Radio:%4d in %3dsec new:%3d", i, frequency, (*tp)->Modulation(), (*tp)->Symbolrate(), (int)tvChannelNames.size() - ntv, (int)radioChannelNames.size() - nradio, (int)difftime(t_out, t_in), (int)tvChannelNames.size() - ntv + (int)radioChannelNames.size() - nradio);
                 fclose(fp);
 
                 free(strDate);
@@ -1716,6 +1718,7 @@ void cScan::Action()
 #endif
     DumpHdTransponder();
     ClearMap();
+    if (a) {}; //remove make warning
 }
 
 //-------------------------------------------------------------------------

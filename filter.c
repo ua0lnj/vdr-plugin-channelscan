@@ -814,7 +814,8 @@ void SdtFilter::Process(u_short Pid, u_char Tid, const u_char * Data, int Length
     cMutexLock MutexLock(&mutex);
     const time_t tt = time(NULL);
     char *strDate;
-    asprintf(&strDate, "%s", asctime(localtime(&tt)));
+    int a = 0;
+    a = asprintf(&strDate, "%s", asctime(localtime(&tt)));
     DEBUG_printf("\nSdtFilter::Process IN %s\n", strDate);
 
     if (!(Source() && Transponder()))
@@ -1116,8 +1117,9 @@ void SdtFilter::Process(u_short Pid, u_char Tid, const u_char * Data, int Length
         SetStatus(false);
     }
     const time_t ttout = time(NULL);
-    asprintf(&strDate, "%s", asctime(localtime(&ttout)));
+    a = asprintf(&strDate, "%s", asctime(localtime(&ttout)));
     DEBUG_printf("\n\nSdtFilter::Process OUT :%4.1fsec: %s\n", (float)difftime(ttout, tt), strDate);
+    if (a) {}; //remove make warning
 }
 
 // --- cSdtMuxFilter ------------------------------------------------------------
@@ -1147,7 +1149,7 @@ void SdtMuxFilter::Process(u_short Pid, u_char Tid, const u_char * Data, int Len
     char *strDate;
     int a, found = 0;
 
-    asprintf(&strDate, "%s", asctime(localtime(&tt)));
+    a = asprintf(&strDate, "%s", asctime(localtime(&tt)));
     DEBUG_printf("\nSdtMuxFilter::Process IN %s\n", strDate);
 
     if (!(Source() && Transponder()))
@@ -1170,7 +1172,7 @@ void SdtMuxFilter::Process(u_short Pid, u_char Tid, const u_char * Data, int Len
         DEBUG_printf("add mux %x num mux %d\n",sdt.getTransportStreamId(),numMux);
     }
     const time_t ttout = time(NULL);
-    asprintf(&strDate, "%s", asctime(localtime(&ttout)));
+    a = asprintf(&strDate, "%s", asctime(localtime(&ttout)));
     DEBUG_printf("\nSdtMuxFilter::Process OUT :%4.1fsec: %s\n", (float)difftime(ttout, tt), strDate);
 }
 
@@ -1399,31 +1401,31 @@ void NitFilter::Process(u_short Pid, u_char Tid, const u_char * Data, int Length
                             System = DVB_SYSTEM_2;
                             if (Frequencies[0] == 0 && NumFrequencies == 1) //no frequency table, mean plpid scan on current transponder
                                 t2plp[td->getPlpId()] = 1;
-                                StreamId = td->getPlpId();
-                                T2SystemId = td->getT2SystemId();
-                                if (td->getExtendedDataFlag()) {
-                                    static int T2Bandwidths[] = { 8000000, 7000000, 6000000, 5000000, 10000000, 1712000, 0, 0 };
-                                    Bandwidth = T2Bandwidths[td->getBandwidth()];
-                                }
-                                getTransponderNum++;
-                                found_=true;
-                                for (int n = 0; n < NumFrequencies; n++)
+                            StreamId = td->getPlpId();
+                            T2SystemId = td->getT2SystemId();
+                            if (td->getExtendedDataFlag()) {
+                                static int T2Bandwidths[] = { 8000000, 7000000, 6000000, 5000000, 10000000, 1712000, 0, 0 };
+                                Bandwidth = T2Bandwidths[td->getBandwidth()];
+                            }
+                            getTransponderNum++;
+                            found_=true;
+                            for (int n = 0; n < NumFrequencies; n++)
+                            {
+                                if(Frequencies[n] == 0)continue;
+                                cTerrTransponder *t = new cTerrTransponder(0, Frequencies[n], Bandwidth, System, StreamId);
+                                if (!t)
                                 {
-                                    if(Frequencies[n] == 0)continue;
-                                    cTerrTransponder *t = new cTerrTransponder(0, Frequencies[n], Bandwidth, System, StreamId);
-                                    if (!t)
-                                    {
-                                        esyslog("FatalError new cTerrTransponder %d failed\n", Frequencies[n]);
-                                    }
-                                    else
-                                    {
-                                        mapRet ret = transponderMap.insert(make_pair(Frequencies[n], t));
-                                        if (ret.second)
-                                            esyslog(" New transponder f: %d plpid %d\n", Frequencies[n], StreamId);
-                                        else
-                                            delete t;
-                                    }
+                                    esyslog("FatalError new cTerrTransponder %d failed\n", Frequencies[n]);
                                 }
+                                else
+                                {
+                                    mapRet ret = transponderMap.insert(make_pair(Frequencies[n], t));
+                                    if (ret.second)
+                                        esyslog(" New transponder f: %d plpid %d\n", Frequencies[n], StreamId);
+                                    else
+                                        delete t;
+                                }
+                            }
 
                         }
                         break;

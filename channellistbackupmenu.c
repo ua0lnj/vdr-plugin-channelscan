@@ -72,6 +72,7 @@ cChannellistBackupMenu::~cChannellistBackupMenu()
 
 void cChannellistBackupMenu::Set()
 {
+    int a = 0;
     char *buffer;
     char *path;
     DIR *dp, *testdp;
@@ -92,7 +93,7 @@ void cChannellistBackupMenu::Set()
     path = strdup(START_PATH);
     for (int i = 0; i < (int)path_.size(); ++i)
     {
-        asprintf(&buffer, "%s%s/", path, path_.at(i));
+        a = asprintf(&buffer, "%s%s/", path, path_.at(i));
         free(path);
         path = strdup(buffer);
         free(buffer);
@@ -109,7 +110,7 @@ void cChannellistBackupMenu::Set()
                 else
                 {
                     // Test if it's a directory since symbolic link is not always working (why?)
-                    asprintf(&buffer, "%s%s", path, dirp->d_name);
+                    a = asprintf(&buffer, "%s%s", path, dirp->d_name);
                     testdp = opendir(buffer);
                     free(buffer);
                     if (testdp)
@@ -128,7 +129,7 @@ void cChannellistBackupMenu::Set()
 
     if ((int)path_.size() > 0)
     {
-        asprintf(&buffer, "%c\t..", 128);
+        a = asprintf(&buffer, "%c\t..", 128);
         Add(new cOsdItem(buffer));
         free(buffer);
     }
@@ -150,6 +151,7 @@ void cChannellistBackupMenu::Set()
     for (int i = 0; i < (int)files.size(); ++i)
         free(files.at(i));
     files.clear();
+    if (a) {}; //remove make warning
 
     Display();
 }

@@ -414,7 +414,7 @@ class cTransponders
     ~cTransponders();
     cTransponders(const cTransponders &);
     cTransponders & operator=(const cTransponders &);
-    std::auto_ptr < cSatTransponder > nitStartTransponder_;
+    std::unique_ptr < cSatTransponder > nitStartTransponder_;
     //bool SetNITStartTransponder();
     static cTransponders *instance_;
     int sourceCode_;

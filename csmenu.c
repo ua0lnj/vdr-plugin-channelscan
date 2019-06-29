@@ -308,19 +308,19 @@ cMenuChannelscan::cMenuChannelscan(int src, int freq, int symrate, char pol, boo
 }
 
 void cMenuChannelscan::TunerAdd(int device, int adapter,int frontend, int stp,int mtp,char *txt) {
-//dsyslog("ADD srcTuners %d device %d adapter %d frontend %d stp %d txt %s mtp %d\n",srcTuners,device,adapter,frontend,stp,txt,mtp);
+    DEBUG_CSMENU(DBGM "ADD srcTuners %d device %d adapter %d frontend %d stp %d txt %s mtp %d\n",srcTuners,device,adapter,frontend,stp,txt,mtp);
+    //vdr valid device number
     srcDevice[srcTuners] = device;
     //vdr valid device number
     srcAdapter[srcTuners] = adapter;
-    //vdr valid device number
-    srcFrontend[srcTuners] = frontend;
     //vdr valid frontend number
-    srcTypes[srcTuners] = stp;
+    srcFrontend[srcTuners] = frontend;
     // sourceType pro tuner
-    srcMS[srcTuners] = mtp;
+    srcTypes[srcTuners] = stp;
     // tuner can multystream
-    srcTexts[srcTuners++] = txt;
+    srcMS[srcTuners] = mtp;
     // coresonding tuner discription
+    srcTexts[srcTuners++] = txt;
 }
 
 
@@ -382,6 +382,7 @@ void cMenuChannelscan::TunerDetection() {
         }
     } else {
 #endif
+    int a = 0;
     int stp = 0;
     int mtp = 0;
     int use_dynamite = 0;
@@ -410,7 +411,7 @@ void cMenuChannelscan::TunerDetection() {
         {
 
             DEBUG_CSMENU(DBGM "tuner %d numprovsys %d type %s name %s\n",tuner,device->NumProvidedSystems(),(const char*)device->DeviceType(),(const char*)device->DeviceName());
-//esyslog("tuner %d numprovsys %d type %s name %s \n",tuner,device->NumProvidedSystems(),(const char*)device->DeviceType(),(const char*)device->DeviceName());
+//dsyslog("tuner %d numprovsys %d type %s name %s \n",tuner,device->NumProvidedSystems(),(const char*)device->DeviceType(),(const char*)device->DeviceName());
             iptv   = strcmp(device->DeviceType(),"IPTV")   == 0;
             satip  = strcmp(device->DeviceType(),"SAT>IP") == 0;
             strdev = strcmp(device->DeviceType(),"STRDev") == 0;
@@ -420,12 +421,10 @@ void cMenuChannelscan::TunerDetection() {
             if (strdev || device->NumProvidedSystems() == 0) continue; //STRDev not supported ;)
 
             cDvbDevice *dvbdevice = (cDvbDevice*)device;
-            if (dvbdevice)
-            {
-                adapter = dvbdevice->Adapter();
-                frontend = dvbdevice->Frontend();
-            }
-            if (adapter < 0 || frontend < 0) dvbdevice = NULL; //satip and iptv is not a dvbdevice
+
+            if (dvbdevice && !iptv && !satip) adapter = dvbdevice->Adapter();
+
+            if (adapter < 0) dvbdevice = NULL; //this is not a dvbdevice
 
             if (iptv || satip)
             {
@@ -435,8 +434,8 @@ void cMenuChannelscan::TunerDetection() {
 
             if (!dvbdevice && !satip && !iptv) continue;                      //unknown device or output device
 
-            DEBUG_CSMENU(DBGM "tuner %d adapter %d frontend %d satip %d iptv %d\n", tuner, adapter, frontend, satip ? 1 : 0, iptv ? 1 : 0);
-//esyslog( "tuner %d adapter %d frontend %d satip %d iptv %d\n", tuner, adapter, frontend, satip ? 1 : 0, iptv ? 1 : 0);
+            DEBUG_CSMENU(DBGM "tuner %d adapter %d satip %d iptv %d\n", tuner, adapter, satip ? 1 : 0, iptv ? 1 : 0);
+//dsyslog( "tuner %d adapter %d satip %d iptv %d\n", tuner, adapter, satip ? 1 : 0, iptv ? 1 : 0);
             if (device && device->Priority()<0 ) // omit tuners that are recording
             {
                 if (device->ProvidesSource(cSource::stTerr))                                      //Terr
@@ -466,16 +465,17 @@ void cMenuChannelscan::TunerDetection() {
                         }
                         if (stp == TERR2)
                         {
-                            asprintf(&txt, "%d %s (%s %i)", srcTuners + 1, tr("DVB-T2 - Terrestrial"), tr("Device"), tuner + 1);
+                            a = asprintf(&txt, "%d %s (%s %i)", srcTuners + 1, tr("DVB-T2 - Terrestrial"), tr("Device"), tuner + 1);
                         }
                         else
                         {
                             if (dvbdevice->ProvidesDeliverySystem(SYS_DVBT))                      //DVB-T
                             {
-                                asprintf(&txt, "%d %s (%s %i)", srcTuners + 1, tr("DVB-T - Terrestrial"), tr("Device"), tuner + 1);
+                                a = asprintf(&txt, "%d %s (%s %i)", srcTuners + 1, tr("DVB-T - Terrestrial"), tr("Device"), tuner + 1);
                                 stp = TERR;
                             }
                         }
+                        frontend = dvbdevice->Frontend();
                         if (txt) TunerAdd(tuner,adapter,frontend,stp,mtp,txt);
 
                         if (!use_dynamite) //for prevent dynamite plugin crashing
@@ -485,8 +485,9 @@ void cMenuChannelscan::TunerDetection() {
                             {
                                 char *txt = NULL;
                                 mtp = 0;
-                                asprintf(&txt, "%d %s (%s %i)", srcTuners + 1, tr("DMB-TH"), tr("Device"), tuner + 1);
+                                a = asprintf(&txt, "%d %s (%s %i)", srcTuners + 1, tr("DMB-TH"), tr("Device"), tuner + 1);
                                 stp = DMB_TH;
+                                frontend = dvbdevice->Frontend();
                                 if (txt) TunerAdd(tuner,adapter,frontend,stp,mtp,txt);
                             }
 #endif
@@ -494,8 +495,9 @@ void cMenuChannelscan::TunerDetection() {
                             {
                                 char *txt = NULL;
                                 mtp = 0;
-                                asprintf(&txt, "%d %s (%s %i)", srcTuners + 1, tr("ISDB-T"), tr("Device"), tuner + 1);
+                                a = asprintf(&txt, "%d %s (%s %i)", srcTuners + 1, tr("ISDB-T"), tr("Device"), tuner + 1);
                                 stp = ISDB_T;
+                                frontend = dvbdevice->Frontend();
                                 if (txt) TunerAdd(tuner,adapter,frontend,stp,mtp,txt);
                             }
                         }
@@ -525,11 +527,11 @@ void cMenuChannelscan::TunerDetection() {
                         }
                         if (stp == TERR2)
                         {
-                            asprintf(&txt, "%d %s (%s %i)", srcTuners + 1, tr("DVB-T2 - Terrestrial"), tr("Device"), tuner + 1);
+                            a = asprintf(&txt, "%d %s (%s %i)", srcTuners + 1, tr("DVB-T2 - Terrestrial"), tr("Device"), tuner + 1);
                         }
                         else                                                                      //DVB-T
                         {
-                            asprintf(&txt, "%d %s (%s %i)", srcTuners + 1, tr("DVB-T - Terrestrial"), tr("Device"), tuner + 1);
+                            a = asprintf(&txt, "%d %s (%s %i)", srcTuners + 1, tr("DVB-T - Terrestrial"), tr("Device"), tuner + 1);
                             stp = TERR;
                         }
                         if (txt) TunerAdd(tuner,adapter,frontend,stp,mtp,txt);
@@ -539,8 +541,9 @@ void cMenuChannelscan::TunerDetection() {
                 {
                     char *txt = NULL;
                     mtp = 0;
-                    asprintf(&txt, "%d %s (%s %i)", srcTuners + 1, tr("DVB-C - Cable"), tr("Device"), tuner + 1);
+                    a = asprintf(&txt, "%d %s (%s %i)", srcTuners + 1, tr("DVB-C - Cable"), tr("Device"), tuner + 1);
                     stp = CABLE;
+                    frontend = dvbdevice->Frontend();
                     if (txt) TunerAdd(tuner,adapter,frontend,stp,mtp,txt);
                 }
                 if (device->ProvidesSource(cSource::stSat))                                       //Sat
@@ -570,23 +573,24 @@ void cMenuChannelscan::TunerDetection() {
                         }
                         if (stp == SATS2)
                         {
-                            asprintf(&txt, "%d %s (%s %i)", srcTuners + 1, tr("DVB-S2 - Satellite"), tr("Device"),  tuner + 1);
+                            a = asprintf(&txt, "%d %s (%s %i)", srcTuners + 1, tr("DVB-S2 - Satellite"), tr("Device"),  tuner + 1);
                         }
                         else
                         {
                             if (dvbdevice->ProvidesDeliverySystem(SYS_DVBS))                      //DVB-S
                             {
-                                asprintf(&txt, "%d %s (%s %i)", srcTuners + 1, tr("DVB-S - Satellite"), tr("Device"),  tuner + 1);
+                                a = asprintf(&txt, "%d %s (%s %i)", srcTuners + 1, tr("DVB-S - Satellite"), tr("Device"),  tuner + 1);
                                 stp = SAT;
                             }
                         }
+                        frontend = dvbdevice->Frontend();
                         if (txt) TunerAdd(tuner,adapter,frontend,stp,mtp,txt);
                     }
                     if (satip) //sat>ip plugin can DVB-S2 only
                     {
                         mtp = 1; //multistream
                         stp = SATS2;
-                        asprintf(&txt, "%d %s (%s %i)", srcTuners + 1, tr("DVB-S2 - Satellite"), tr("Device"),  tuner + 1);
+                        a = asprintf(&txt, "%d %s (%s %i)", srcTuners + 1, tr("DVB-S2 - Satellite"), tr("Device"),  tuner + 1);
                         if (txt) TunerAdd(tuner,adapter,frontend,stp,mtp,txt);
                     }
                     ::Setup.DiSEqC = oldDiSEqC;   //restore DiSEqC
@@ -595,7 +599,7 @@ void cMenuChannelscan::TunerDetection() {
                 {
                     char *txt = NULL;
                     mtp = 0;
-                    asprintf(&txt, "%d %s (%s %i)", srcTuners + 1, tr("DVB-IP - Network"), tr("Device"), tuner + 1);
+                    a = asprintf(&txt, "%d %s (%s %i)", srcTuners + 1, tr("DVB-IP - Network"), tr("Device"), tuner + 1);
                     stp = IPTV;
                     if (txt) TunerAdd(tuner,adapter,frontend,stp,mtp,txt);
                 }
@@ -603,7 +607,7 @@ void cMenuChannelscan::TunerDetection() {
                 {
                     char *txt = NULL;
                     mtp = 0;
-                    asprintf(&txt, "%d %s (%s %i)", srcTuners + 1, tr("Analog"), tr("Device"), tuner + 1);
+                    a = asprintf(&txt, "%d %s (%s %i)", srcTuners + 1, tr("Analog"), tr("Device"), tuner + 1);
                     stp = ANALOG;
                     if (txt) TunerAdd(tuner,pvrCard,frontend,stp,mtp,txt); //frontend$ = /dev/video$
                     pvrCard++; //how many pvr card
@@ -612,12 +616,14 @@ void cMenuChannelscan::TunerDetection() {
                 {
                     char *txt = NULL;
                     mtp = 0;
-                    asprintf(&txt, "%d %s (%s %i)", srcTuners + 1, tr("ATSC"), tr("Device"), tuner + 1);
+                    a = asprintf(&txt, "%d %s (%s %i)", srcTuners + 1, tr("ATSC"), tr("Device"), tuner + 1);
                     stp = ATSC;
+                    frontend = dvbdevice->Frontend();
                     if (txt) TunerAdd(tuner,adapter,frontend,stp,mtp,txt);
                 }
                 if (stp == -1)
                     esyslog("UNKNOWN DEVICE %d\n", tuner);
+                if (a) {}; //remove make warning
             }
         }
     }
@@ -1383,7 +1389,7 @@ eOSState cMenuChannelscan::ProcessKey(eKeys Key)
 
         if(oldchannel != channel && (Key < k0 || Key > k9)){
             Set();
-            cht = NULL;
+            cht = 0;
         }
         else if (oldchannel != channel)
             cht = time(NULL);
@@ -1391,7 +1397,7 @@ eOSState cMenuChannelscan::ProcessKey(eKeys Key)
     if (cht && (time(NULL) - cht) > 0 && Key == kNone)  //wait 1 sek for press channel number
     {
         Set();
-        cht = NULL;
+        cht = 0;
     }
     //DDD("%s returning %d", __PRETTY_FUNCTION__, state);
     return state;
@@ -1534,7 +1540,7 @@ cMenuScanActive::cMenuScanActive(cScanParameters * sp, bool isWiz):cOsdMenu(tr("
 
 void cMenuScanActive::Setup()
 {
-    int num_tv = 0, num_radio = 0;
+    int num_tv = 0, num_radio = 0, a = 0;
     int frequency = scp->frequency;
     const char *modTexts[12];
     modTexts[0] = "QPSK";
@@ -1625,7 +1631,7 @@ void cMenuScanActive::Setup()
         FILE *fp = fopen("/tmp/cScan.log", "a");
         const time_t tt = time(NULL);
         char *strDate;
-        asprintf(&strDate, "%s", asctime(localtime(&tt)));
+        a = asprintf(&strDate, "%s", asctime(localtime(&tt)));
         strDate[strlen(strDate) - 1] = 0;
         fprintf(fp, "\n%s TV:%d \t Radio: %d", strDate, num_tv, num_radio);
         for (int i = Ntv; i < num_tv; i++)
@@ -1715,7 +1721,7 @@ void cMenuScanActive::Setup()
             {
                 //printf("%s", tr(cTransponders::GetInstance().Position().c_str()));
                 const char *a = Scan->GetCurrentParameters();
-                char *b[15];
+                char b[15];
                 memset(b,'\0',15);
                 if (a && *a){
                     const char *c = strrchr(a,'|');
@@ -1799,6 +1805,7 @@ void cMenuScanActive::Setup()
         ErrorMessage();
     }
     Display();
+    if (a) {}; //remove make warning
 }
 
 // show this only cMenuChannelscan
@@ -1834,8 +1841,8 @@ void cMenuScanActive::ErrorMessage()
 
 void cMenuScanActive::DeleteDummy()
 {
-    DEBUG_CSMENU(" --- %s --- %d -- \n", __PRETTY_FUNCTION__, Channels.Count());
 #if VDRVERSNUM < 20301
+    DEBUG_CSMENU(" --- %s --- %d -- \n", __PRETTY_FUNCTION__, Channels.Count());
     if (Channels.Count() < 3)
         return;
 
@@ -1845,6 +1852,7 @@ void cMenuScanActive::DeleteDummy()
     Channels.ReNumber();
 #else
     LOCK_CHANNELS_READ;
+    DEBUG_CSMENU(" --- %s --- %d -- \n", __PRETTY_FUNCTION__, Channels->Count());
     if (Channels->Count() < 3)
         return;
 
@@ -2000,9 +2008,10 @@ cMenuScanActiveItem::cMenuScanActiveItem(const char *TvChannel, const char *Radi
     tvChannel = strdup(TvChannel);
     radioChannel = strdup(RadioChannel);
     char *buffer = NULL;
-    asprintf(&buffer, "%s \t%s", tvChannel, radioChannel);
+    int a = asprintf(&buffer, "%s \t%s", tvChannel, radioChannel);
     SetText(buffer, false);
     SetSelectable(false);
+    if (a) {}; //remove make warning
 }
 
 cMenuScanActiveItem::~cMenuScanActiveItem()
@@ -2026,9 +2035,10 @@ void cMyMenuEditSrcItem::Set(void)
     if (source)
     {
         char *buffer = NULL;
-        asprintf(&buffer, "%s - %s", *cSource::ToString(source->Code()), source->Description());
+        int a = asprintf(&buffer, "%s - %s", *cSource::ToString(source->Code()), source->Description());
         SetValue(buffer);
         free(buffer);
+        if (a) {}; //remove make warning
     }
     else
         cMenuEditIntItem::Set();
@@ -2133,8 +2143,8 @@ cMenuScanInfoItem::cMenuScanInfoItem(const string & Pos, int f, char pol, int sr
 
     const char *pos = Pos.c_str();
     char *buffer = NULL;
-    asprintf(&buffer, "%s :\t%s %d %c %d %s", tr("Scanning on transponder"), pos, f, pol, sr, FECToStr(fecIndex));
-
+    int a = asprintf(&buffer, "%s :\t%s %d %c %d %s", tr("Scanning on transponder"), pos, f, pol, sr, FECToStr(fecIndex));
+    if (a) {}; //remove make warning
     SetText(strdup(buffer), false);
     SetSelectable(false);
 }
@@ -2226,8 +2236,8 @@ cMenuStatusBar::cMenuStatusBar(int Total, int Current, int Channel, int mode, in
 cMenuInfoItem::cMenuInfoItem(const char *text, const char *textValue)
 {
     char *buffer = NULL;
-    asprintf(&buffer, "%s  %s", text, textValue ? textValue : "");
-
+    int a = asprintf(&buffer, "%s  %s", text, textValue ? textValue : "");
+    if (a) {}; //remove make warning
     SetText(strdup(buffer), false);
     SetSelectable(false);
     free(buffer);
@@ -2236,10 +2246,12 @@ cMenuInfoItem::cMenuInfoItem(const char *text, const char *textValue)
 cMenuInfoItem::cMenuInfoItem(const char *text, int intValue, bool tab)
 {
     char *buffer = NULL;
+    int a = 0;
     if (tab)
-       asprintf(&buffer, "%s:\t%d", text, intValue);
+       a = asprintf(&buffer, "%s:\t%d", text, intValue);
     else
-       asprintf(&buffer, "%s: %d", text, intValue);
+       a = asprintf(&buffer, "%s: %d", text, intValue);
+    if (a) {}; //remove make warning
     SetText(strdup(buffer), false);
     SetSelectable(false);
     free(buffer);
@@ -2248,8 +2260,8 @@ cMenuInfoItem::cMenuInfoItem(const char *text, int intValue, bool tab)
 cMenuInfoItem::cMenuInfoItem(const char *text, bool boolValue)
 {
     char *buffer = NULL;
-    asprintf(&buffer, "%s: %s", text, boolValue ? tr("enabled") : tr("disabled"));
-
+    int a = asprintf(&buffer, "%s: %s", text, boolValue ? tr("enabled") : tr("disabled"));
+    if (a) {}; //remove make warning
     SetText(strdup(buffer), false);
     SetSelectable(false);
     free(buffer);
@@ -2396,6 +2408,7 @@ cMenuChannelsItem::cMenuChannelsItem(cDirectoryEntry * Entry)
 {
     entry_ = Entry;
     char *buffer = NULL;
+    int a = 0;
     isDir_ = false;
     if (Entry->IsDirectory())
     {
@@ -2405,6 +2418,7 @@ cMenuChannelsItem::cMenuChannelsItem(cDirectoryEntry * Entry)
     else
         asprintf(&buffer, "     %s", Entry->Title());
 
+    if (a) {}; //remove make warning
     SetText(buffer, true);
     free(buffer);
 }

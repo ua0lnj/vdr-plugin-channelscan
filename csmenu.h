@@ -185,7 +185,7 @@ class cMenuScanActive:public cOsdMenu
     int LiveBufferTmp;
     bool nitScan_;
     int transponderNum_;
-    std::auto_ptr < cScan > Scan;
+    std::unique_ptr < cScan > Scan;
     cScanParameters *scp;
     bool isWizardMode;
     void ErrorMessage();
