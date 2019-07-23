@@ -315,7 +315,6 @@ uint16_t cScan::getStatus()
 
 int cScan::ScanServices(bool noSDT)
 {
-    const time_t  tt = time(NULL);
     time_t tt_;
     char *strDate;
     int a = 0;
@@ -432,6 +431,7 @@ int cScan::ScanServices(bool noSDT)
     DEBUG_printf("%s OUT:%4.2fms: %s\n", __PRETTY_FUNCTION__, (float)difftime(ttout, tt) * 1000, strDate);
     free(strDate);
     if (a) {}; //remove make warning
+    if (tt_ > 0) {}; //remove make warning
 
     return totalNum;
 }
@@ -510,8 +510,6 @@ void cScan::ScanNitServices()
 //-------------------------------------------------------------------------
 void cScan::ScanDVB_S(cTransponder * tp, cChannel * c)
 {
-    const time_t tt = time(NULL);
-
     int maxmods = scanParameter_.type == SATS2 ? 5 : 1;
     int lockTimeout;
     int foundServices = 0, a = 0;
@@ -775,7 +773,7 @@ void cScan::ScanDVB_T(cTransponder * tp, cChannel * c)
              * second way is a longest
              */
             int r = 1;
-            if (system == DVB_SYSTEM_2 && scanParameter_.streamId == NO_STREAM_ID_FILTER) r = 256;
+            if (system == DVB_SYSTEM_2 && scanParameter_.streamId == (int)NO_STREAM_ID_FILTER) r = 256;
 
             /* t2 mplp loop */
             for (p = 0; p < r; p++)
@@ -785,7 +783,7 @@ void cScan::ScanDVB_T(cTransponder * tp, cChannel * c)
                     (dynamic_cast < cTerrTransponder * >(tp))->SetStreamId(p);
                     tp->SetTransponderData(c, sourceCode);
                 }
-                else if ((scanParameter_.detail == 1 || scanParameter_.streamId == NO_STREAM_ID_FILTER) && !nitScan)
+                else if ((scanParameter_.detail == 1 || scanParameter_.streamId == (int)NO_STREAM_ID_FILTER) && !nitScan)
                 {
                     (dynamic_cast < cTerrTransponder * >(tp))->SetStreamId(p);
                     tp->SetTransponderData(c, sourceCode);
@@ -1066,9 +1064,7 @@ void cScan::ScanATSC(cTransponder * tp, cChannel * c)
 //-------------------------------------------------------------------------
 void cScan::ScanDVB_I(cTransponder * tp, cChannel * c)
 {
-    int frequency = tp->Frequency();
     int services;
-    int oldtvChannelNames = tvChannelNames.size();
 
     DLOG("DEBUG [channelscan]:  DVB_I Search \n");
     if (cMenuChannelscan::scanState >= ssInterrupted)
@@ -1119,7 +1115,7 @@ void cScan::ScanDVB_I(cTransponder * tp, cChannel * c)
 /* ----------------- get udp address from parameter ------*/
             const char *param = tp->Parameters();
             char *ip[15];
-            memset(ip,'\0',15);
+            memset(ip,'\0',sizeof(ip));
             if (param && *param)
             {
                 const char *end = strrchr(param,'|');
@@ -1198,8 +1194,6 @@ void cScan::ScanDVB_I(cTransponder * tp, cChannel * c)
 
 void cScan::ScanAnalog(cTransponder * tp, cChannel * c)
 {
-    int timeout = 1000;
-    int response = 0;
     region = scanParameter_.region;
 
     DLOG("DEBUG [channelscan]: Analog Search \n");
@@ -1700,7 +1694,6 @@ void cScan::Action()
 
     DEBUG_SCAN(" --- End of transponderlist. End of scan! Duratation %d ---\n", duration);
     // avoid warning wihout debug
-    duration = 0;
 
     if (cMenuChannelscan::scanState == ssGetChannels)
         cMenuChannelscan::scanState = ssSuccess;
@@ -1719,6 +1712,7 @@ void cScan::Action()
     DumpHdTransponder();
     ClearMap();
     if (a) {}; //remove make warning
+    if (duration > 0) {}; //remove make warning
 }
 
 //-------------------------------------------------------------------------

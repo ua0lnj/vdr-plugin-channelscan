@@ -55,6 +55,9 @@ using std::stringstream;
 using std::cout;
 using std::vector;
 
+extern const char* Standard[];
+extern const char* pvrInput[];
+
 /* Notation for Europe (region 0)
    channel 1-4: VHF band 1
     5-13:   VHF band 3
@@ -892,7 +895,6 @@ void cTransponders::Load(cScanParameters * scp)
         }
         else                    //scan single ip
         {
-            int channel = 0;
             int sidScan = 1;
             int pidScan = 1;
             const char *proto = "UDP";

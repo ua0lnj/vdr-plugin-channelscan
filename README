@@ -86,7 +86,7 @@ stream - stream id for multistream
 
 DVB-S/DVB-S2 Nit scan:
 ======================
--Sat.ini, Sat.tpl, SatNIT.ini, SatNIT.tpl
+- Sat.ini, Sat.tpl, SatNIT.ini, SatNIT.tpl
 Аny of these files can be in vdr-config-dir/plugins/transponders
 
 Must contain one transponder with a nit table for each satellite
@@ -103,9 +103,9 @@ Example http://www.fastsatfinder.com/bin/Transponders.zip
 
 IPTV Transponder list:
 ======================
--Iptv.tpl or Iptv.ini files from vdr-config-dir/plugins/transponders
+- Iptv.tpl or Iptv.ini files from vdr-config-dir/plugins/transponders
 
--Format is:
+- Format is:
 x.x.x.x-x.x.x.x:x
 
 239.0.0.1-239.0.0.255:1234

@@ -47,8 +47,8 @@ void MoveRotor(int cardIndex, int source)
         {
             void *data[3];
             intptr_t cmds;
-            data[0] = (void *)(cardIndex + 1);
-            data[1] = (void *)(source);
+            data[0] = reinterpret_cast <void *> (cardIndex + 1);
+            data[1] = reinterpret_cast <void *> (source);
             p->Service("netcvrotor.getDiseqc", &data);
             cmds = (intptr_t)data[2];
             if (cmds != -1)
@@ -58,6 +58,7 @@ void MoveRotor(int cardIndex, int source)
             }
         }
     }
+    if (cmd3 & cmd4) {}; //remove make warning
 }
 
 bool IsWithinConfiguredBorders(int currentTuner, const cSource * source)
@@ -163,7 +164,7 @@ bool TunerIsRotor(int nrTuner)
     if (p)
     {
         void *data[2];
-        data[0] = (void *)(nrTuner);
+        data[0] = reinterpret_cast <void *> (nrTuner);
         p->Service("netcvrotor.tunerIsRotor", &data);
         return (intptr_t)data[1];
     }

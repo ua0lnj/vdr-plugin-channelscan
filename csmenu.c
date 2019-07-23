@@ -104,6 +104,54 @@ int OsdWidth, OsdHeight;
 
 bool scanning_on_receiving_device = false;
 
+const char* Standard[] {
+    "",
+    "PAL",
+    "NTSC",
+    "SECAM",
+    "NTSC_M",
+    "NTSC_M_JP",
+    "NTSC_443",
+    "NTSC_M_KR",
+    "PAL_M",
+    "PAL_N",
+    "PAL_NC",
+    "PAL_B",
+    "PAL_B1",
+    "PAL_G",
+    "PAL_BG",
+    "PAL_D",
+    "PAL_D1",
+    "PAL_K",
+    "PAL_DK",
+    "PAL_H",
+    "PAL_I",
+    "PAL_60",
+    "SECAM_B",
+    "SECAM_D",
+    "SECAM_G",
+    "SECAM_H",
+    "SECAM_K",
+    "SECAM_K1",
+    "SECAM_DK",
+    "SECAM_L",
+    "SECAM_LC"
+};
+
+const char *pvrInput[] = {
+    "TUNER",
+    "COMPOSITE0",
+    "COMPOSITE1",
+    "COMPOSITE2",
+    "COMPOSITE3",
+    "COMPOSITE4",
+    "SVIDEO0",
+    "SVIDEO1",
+    "SVIDEO2",
+    "SVIDEO3",
+    "COMPONENT"
+};
+
 // --- Class cMenuChannelscan ------------------------------------------------
 #ifdef REELVDR
 cMenuChannelscan::cMenuChannelscan(int src, int freq, int symrate, char pol, bool isWiz):cOsdMenu(tr("Channelscan"), CHNUMWIDTH), isWizardMode(false)
@@ -417,6 +465,9 @@ void cMenuChannelscan::TunerDetection() {
             strdev = strcmp(device->DeviceType(),"STRDev") == 0;
             dvb    = strspn(device->DeviceType(),"DVB")    == 3;
             bad_name  = strlen(device->DeviceType())       <= 1;
+
+            if (dvb) {}; //remove make warning
+            if (bad_name) {}; //remove make warning
 
             if (strdev || device->NumProvidedSystems() == 0) continue; //STRDev not supported ;)
 
@@ -1541,7 +1592,7 @@ cMenuScanActive::cMenuScanActive(cScanParameters * sp, bool isWiz):cOsdMenu(tr("
 void cMenuScanActive::Setup()
 {
     int num_tv = 0, num_radio = 0, a = 0;
-    int frequency = scp->frequency;
+
     const char *modTexts[12];
     modTexts[0] = "QPSK";
     modTexts[1] = "QAM 16";
@@ -2325,7 +2376,7 @@ eOSState cMyMenuEditIpItem::ProcessKey(eKeys Key)
      int newValue1 = *value1;
      int newValue2 = *value2;
      int newValue3 = *value3;
-     bool IsRepeat = Key & k_Repeat;
+//     bool IsRepeat = Key & k_Repeat;
      Key = NORMALKEY(Key);
      int newpos = pos;
      int ch = 0;

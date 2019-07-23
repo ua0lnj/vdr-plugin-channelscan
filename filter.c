@@ -31,7 +31,7 @@
 #ifdef REELVDR
 #include <vdr/s2reel_compat.h>
 #endif
-//#include <vdr/channels.h>
+
 #include <libsi/section.h>
 #include <libsi/descriptor.h>
 
@@ -1307,7 +1307,7 @@ void NitFilter::Process(u_short Pid, u_char Tid, const u_char * Data, int Length
 
         int StreamId = 0;
         int System = DVB_SYSTEM_1;
-        int T2SystemId = 0;
+//        int T2SystemId = 0;
         int Bandwidth = 0;
 
       for (SI::Loop::Iterator it2; (d = ts.transportStreamDescriptors.getNext(it2)); ) {
@@ -1322,8 +1322,8 @@ void NitFilter::Process(u_short Pid, u_char Tid, const u_char * Data, int Length
             case SI::SatelliteDeliverySystemDescriptorTag: {
                    if (mode != SATS2 && mode != SAT) break;// to prevent incorrect nit
                  SI::SatelliteDeliverySystemDescriptor *sd = (SI::SatelliteDeliverySystemDescriptor *)d;
-                 int Source = cSource::FromData(cSource::stSat, BCD2INT(sd->getOrbitalPosition()), sd->getWestEastFlag());
-                 int Frequency = Frequencies[0] = BCD2INT(sd->getFrequency()) / 100;
+//                 int Source = cSource::FromData(cSource::stSat, BCD2INT(sd->getOrbitalPosition()), sd->getWestEastFlag());
+                 Frequencies[0] = BCD2INT(sd->getFrequency()) / 100;
                  static char Polarizations[] = { 'H', 'V', 'L', 'R' };
                  char Polarization = Polarizations[sd->getPolarization()];
                  static int CodeRates[] = { FEC_NONE, FEC_1_2, FEC_2_3, FEC_3_4, FEC_5_6, FEC_7_8, FEC_8_9, FEC_3_5, FEC_4_5, FEC_9_10, FEC_AUTO, FEC_AUTO, FEC_AUTO, FEC_AUTO, FEC_AUTO, FEC_NONE };
@@ -1362,8 +1362,8 @@ void NitFilter::Process(u_short Pid, u_char Tid, const u_char * Data, int Length
             case SI::CableDeliverySystemDescriptorTag: {
                  if (mode != CABLE) break; // to prevent incorrect nit
                  SI::CableDeliverySystemDescriptor *sd = (SI::CableDeliverySystemDescriptor *)d;
-                 int Source = cSource::FromData(cSource::stCable);
-                 int Frequency = Frequencies[0] = BCD2INT(sd->getFrequency()) / 10;
+//                 int Source = cSource::FromData(cSource::stCable);
+                 Frequencies[0] = BCD2INT(sd->getFrequency()) / 10;
                  static int Modulations[] = { QPSK, QAM_16, QAM_32, QAM_64, QAM_128, QAM_256, QAM_AUTO };
 #if VDRVERSNUM < 20305
                  int Modulation = Modulations[min(sd->getModulation(), 6)];
@@ -1402,7 +1402,7 @@ void NitFilter::Process(u_short Pid, u_char Tid, const u_char * Data, int Length
                             if (Frequencies[0] == 0 && NumFrequencies == 1) //no frequency table, mean plpid scan on current transponder
                                 t2plp[td->getPlpId()] = 1;
                             StreamId = td->getPlpId();
-                            T2SystemId = td->getT2SystemId();
+//                            T2SystemId = td->getT2SystemId();
                             if (td->getExtendedDataFlag()) {
                                 static int T2Bandwidths[] = { 8000000, 7000000, 6000000, 5000000, 10000000, 1712000, 0, 0 };
                                 Bandwidth = T2Bandwidths[td->getBandwidth()];
@@ -1446,8 +1446,8 @@ void NitFilter::Process(u_short Pid, u_char Tid, const u_char * Data, int Length
                  if (mode != TERR && mode != TERR2) break; // to prevent incorrect nit
                  SI::TerrestrialDeliverySystemDescriptor *sd = (SI::TerrestrialDeliverySystemDescriptor *)d;
 
-                 int Source = cSource::FromData(cSource::stTerr);
-                 int Frequency = Frequencies[0] = sd->getFrequency() * 10;
+//                 int Source = cSource::FromData(cSource::stTerr);
+                 Frequencies[0] = sd->getFrequency() * 10;
                  static int Bandwidths[] = { 8000000, 7000000, 6000000, 5000000, 0, 0, 0, 0 };
                  if (System == DVB_SYSTEM_1) Bandwidth = Bandwidths[sd->getBandwidth()];
                    getTransponderNum++;
@@ -1480,7 +1480,7 @@ void NitFilter::Process(u_short Pid, u_char Tid, const u_char * Data, int Length
                     for (SI::Loop::Iterator it4; lcd->logicalChannelLoop.getNext(LogicalChannel, it4); ) {
                         if (LogicalChannel.getVisibleServiceFlag()) {
                            int lcn = LogicalChannel.getLogicalChannelNumber();
-                           int sid = LogicalChannel.getServiceId();
+//                           int sid = LogicalChannel.getServiceId();
 #if VDRVERSNUM >= 20301
                            for (cChannel *Channel = Channels->First(); Channel; Channel = Channels->Next(Channel)) {
                                if (!Channel->GroupSep() && Channel->Transponder() == Transponder() && Channel->Nid() == ts.getOriginalNetworkId() && Channel->Tid() == ts.getTransportStreamId()) {
@@ -1504,7 +1504,7 @@ void NitFilter::Process(u_short Pid, u_char Tid, const u_char * Data, int Length
                     for (SI::Loop::Iterator it4; lcd->hdSimulcastLogicalChannelLoop.getNext(HdSimulcastLogicalChannel, it4); ) {
                         if (HdSimulcastLogicalChannel.getVisibleServiceFlag()) {
                            int lcn = HdSimulcastLogicalChannel.getLogicalChannelNumber();
-                           int sid = HdSimulcastLogicalChannel.getServiceId();
+//                           int sid = HdSimulcastLogicalChannel.getServiceId();
 #if VDRVERSNUM >= 20301
                            for (cChannel *Channel = Channels->First(); Channel; Channel = Channels->Next(Channel)) {
                                if (!Channel->GroupSep() && Channel->Transponder() == Transponder() && Channel->Nid() == ts.getOriginalNetworkId() && Channel->Tid() == ts.getTransportStreamId()) {

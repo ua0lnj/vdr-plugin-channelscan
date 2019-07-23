@@ -61,54 +61,6 @@
 #define DTMB         2
 #define ISDBT        3
 
-static const char *Standard[] = {
-    "",
-    "PAL",
-    "NTSC",
-    "SECAM",
-    "NTSC_M",
-    "NTSC_M_JP",
-    "NTSC_443",
-    "NTSC_M_KR",
-    "PAL_M",
-    "PAL_N",
-    "PAL_NC",
-    "PAL_B",
-    "PAL_B1",
-    "PAL_G",
-    "PAL_BG",
-    "PAL_D",
-    "PAL_D1",
-    "PAL_K",
-    "PAL_DK",
-    "PAL_H",
-    "PAL_I",
-    "PAL_60",
-    "SECAM_B",
-    "SECAM_D",
-    "SECAM_G",
-    "SECAM_H",
-    "SECAM_K",
-    "SECAM_K1",
-    "SECAM_DK",
-    "SECAM_L",
-    "SECAM_LC"
-};
-
-static const char *pvrInput[] = {
-    "TUNER",
-    "COMPOSITE0",
-    "COMPOSITE1",
-    "COMPOSITE2",
-    "COMPOSITE3",
-    "COMPOSITE4",
-    "SVIDEO0",
-    "SVIDEO1",
-    "SVIDEO2",
-    "SVIDEO3",
-    "COMPONENT"
-};
-
 #ifndef REELVDR
 
 namespace setup
