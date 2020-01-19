@@ -475,7 +475,7 @@ void cMenuChannelscan::TunerDetection() {
 
             if (dvbdevice && !iptv && !satip) adapter = dvbdevice->Adapter();
 
-            if (adapter < 0) dvbdevice = NULL; //this is not a dvbdevice
+            if (adapter < 0 || iptv || satip) dvbdevice = NULL; //this is not a dvbdevice
 
             if (iptv || satip)
             {
@@ -526,6 +526,7 @@ void cMenuChannelscan::TunerDetection() {
                                 stp = TERR;
                             }
                         }
+
                         frontend = dvbdevice->Frontend();
                         if (txt) TunerAdd(tuner,adapter,frontend,stp,mtp,txt);
 
