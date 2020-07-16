@@ -437,7 +437,7 @@ void PatFilter::Process(u_short Pid, u_char Tid, const u_char *Data, int Length)
            numPmtEntries = 0;
            SI::PAT::Association assoc;
            for (SI::Loop::Iterator it; pat.associationLoop.getNext(assoc, it); ) {
-               if (!assoc.isNITPid() && numPmtEntries < MAXPMTENTRIES) {
+               if (!assoc.isNITPid() && numPmtEntries < CMAXPMTENTRIES) {
                   DBGPAT("    PMT pid %2d %5d  SID %5d", numPmtEntries, assoc.getPid(), assoc.getServiceId());
                   pmtId[numPmtEntries] = MakePmtId(assoc.getPid(), assoc.getServiceId());
                   pmtVersion[numPmtEntries] = -1;

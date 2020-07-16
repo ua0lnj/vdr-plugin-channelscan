@@ -74,7 +74,7 @@ class PatFilter:public cFilter
     time_t lastPmtScan[CMAXPMTENTRIES];
     int pmtIndex;
     int pmtPid[CMAXPMTENTRIES];
-  int pmtId[MAXPMTENTRIES];
+  int pmtId[CMAXPMTENTRIES];
     int Sids[CMAXPMTENTRIES];
     int pmtVersion[CMAXPMTENTRIES];
     int numPmtEntries;
