@@ -544,6 +544,7 @@ void PatFilter::Process(u_short Pid, u_char Tid, const u_char *Data, int Length)
               case 0x1B: // H.264
               case 0x24: // H.265
               case 0x42: // AVS+
+              case 0xD2: // AVS2
                       Vpid = esPid;
                       Ppid = pmt.getPCRPid();
                       Vtype = stream.getStreamType();
@@ -687,7 +688,8 @@ void PatFilter::Process(u_short Pid, u_char Tid, const u_char *Data, int Length)
                          break;
                          }
                       // fall through
-              case 0x83 ... 0xFF: // STREAMTYPE_USER_PRIVATE
+              case 0x83 ... 0xD1: // STREAMTYPE_USER_PRIVATE
+              case 0xD3 ... 0xFF: // STREAMTYPE_USER_PRIVATE
                       {
                       char lang[MAXLANGCODE1] = { 0 };
                       bool IsAc3 = false;
@@ -906,9 +908,11 @@ void SdtFilter::Process(u_short Pid, u_char Tid, const u_char * Data, int Length
                     case 0x03: // DVB Subtitles
                     case 0x04: // NVOD reference service
                     case 0x05: // NVOD time-shifted service
+                    case 0x0A: // advanced codec digital radio sound service
                     case 0x11: // digital television service MPEG-2 HD  ??? never seen !
                     case 0x16:
                     case 0x19: // digital television service MPEG-4 HD
+                    case 0x1F: // digital television service H.265
                     case 0x20: // digital television service H.265 UHD
                     case 0xC3: // some french channels like kiosk
                     case 0x86: // ?? Astra 28.2 MPEG-4 HD
@@ -982,12 +986,14 @@ void SdtFilter::Process(u_short Pid, u_char Tid, const u_char * Data, int Length
                                     case 0x11:
                                     case 0x16:
                                     case 0x19:
+                                    case 0x1F:
                                     case 0x20:
                                     case 0xC3:
                                     case 0x86:
                                         tvChannelNames.push_back(NameBuf);  // if service wanted
                                         break;
                                     case 0x2:
+                                    case 0xA:
                                         radioChannelNames.push_back(NameBuf);   // if service wanted
                                         break;
                                     default:;
