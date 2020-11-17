@@ -471,7 +471,11 @@ void cMenuChannelscan::TunerDetection() {
 
             if (strdev || device->NumProvidedSystems() == 0) continue; //STRDev not supported ;)
 
+#ifdef __DYNAMIC_DEVICE_PROBE
+            cDvbDevice *dvbdevice = device->HasSubDevice() ? (cDvbDevice*)device->SubDevice(): (cDvbDevice*)device;
+#else
             cDvbDevice *dvbdevice = (cDvbDevice*)device;
+#endif
 
             if (dvbdevice && !iptv && !satip) adapter = dvbdevice->Adapter();
 
