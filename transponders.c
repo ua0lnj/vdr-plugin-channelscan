@@ -40,6 +40,7 @@
 #include <linux/dvb/frontend.h>
 #include "channelscan.h"
 #include <bzlib.h>
+#include <vdr/diseqc.h>
 
 //#define DEBUG_TRANSPONDER(format, args...) printf (format, ## args)
 #define DEBUG_TRANSPONDER(format, args...)
@@ -501,27 +502,45 @@ bool cSatTransponder::Parse(const string & Line)
     index = sFec.find_first_of(',');
     string sys, mod, stream;
 
-    if (index == -1)
+    if (index == -1 && ScanSetup.tplUpdateType == 0) //Use Sat.url
     {
         system_ = DVB_SYSTEM_1;
         modulation_ = QPSK;
     }
+    else if (index == -1)
+        return false;
     else
     {
         sys = sFec.substr(index + 1);
         sFec.erase(index);
 
-        index = sys.find_first_of(';');
+        if (ScanSetup.tplUpdateType == 0)  //Use Sat.url
+            index = sys.find_first_of(';');
+        else                               //Use kingofsat.net
+            index = sys.find_first_of(',');
+
         if (index != -1)
         {
             mod = sys.substr(index + 1);
             sys.erase(index);
 
-            index = mod.find_first_of(';');
-            if (index != -1)
+            if (ScanSetup.tplUpdateType == 0)  //Use Sat.url
             {
-                stream = mod.substr(index + 1);
-                mod.erase(index);
+                index = mod.find_first_of(';');
+                if (index != -1)
+                {
+                    stream = mod.substr(index + 1);
+                    mod.erase(index);
+                }
+            }
+            else                               //Use kingofsat.net
+            {
+                index = mod.find_first_of(' ');
+                if (index != -1)
+                {
+//                    stream = mod.substr(index + 1);
+                    mod.erase(index);
+                }
             }
         }
     }
@@ -1268,55 +1287,95 @@ bool cTransponders::GetTpl()
     out = cPlugin::ConfigDirectory();
     out += "/transponders/";
 
-    urlFile = out + "Sat.url";
-
-    FILE *file = fopen(urlFile.c_str(), "r");
-    if (file && !ferror(file))
+    if (ScanSetup.tplUpdateType == 0) //Use Sat.url
     {
-        while ( fscanf(file,"%s",tplAddress) != EOF)
+        urlFile = out + "Sat.url";
+
+        FILE *file = fopen(urlFile.c_str(), "r");
+        if (file && !ferror(file))
         {
-            DEBUG_TRANSPONDER(DBGT "----- %s\n",tplAddress);
+            while ( fscanf(file,"%s",tplAddress) != EOF)
+            {
+                DEBUG_TRANSPONDER(DBGT "----- %s\n",tplAddress);
 
-            buffer = std::string("wget ") + tplAddress + std::string(" -N -P ") + out;
-            DEBUG_TRANSPONDER(DBGT "---- %s\n",buffer.c_str());
+                buffer = std::string("wget ") + tplAddress + std::string(" -N -P ") + out;
+                DEBUG_TRANSPONDER(DBGT "---- %s\n",buffer.c_str());
 
-            result = SystemExec(buffer.c_str());
-            if (!result)
-                break;
+                result = SystemExec(buffer.c_str());
+                if (!result)
+                    break;
+            }
+            fclose(file);
         }
-        fclose(file);
-    }
-    if (result)
-        goto fail;
+        if (result)
+            goto fail;
 
 /* see filename ending for decompressor choose */
 /* .zip and .bz2 can use now                   */
 /* unzip and bunzip2 must be in system         */
 
-    tplFile = strrchr(tplAddress,'/') + 1;
-    fileType = strrchr(tplAddress,'.') + 1;
+        tplFile = strrchr(tplAddress,'/') + 1;
+        fileType = strrchr(tplAddress,'.') + 1;
 
-    if (!strcasecmp(fileType,"zip"))
-    {
-        buffer = std::string("unzip -o ") + out + tplFile + std::string(" -d ") + out;
-        DEBUG_TRANSPONDER(DBGT "---- %s\n",buffer.c_str());
-    }
-    else if (!strcasecmp(fileType,"bz2"))
-    {
-        buffer = std::string("bunzip2 -f ") + out + tplFile;
-        DEBUG_TRANSPONDER(DBGT "---- %s\n",buffer.c_str());
-    }
-    else
-    {
-        esyslog("error [channelscan] unknown archive.\n");
-        goto fail;
-    }
+        if (!strcasecmp(fileType,"zip"))
+        {
+            buffer = std::string("unzip -o ") + out + tplFile + std::string(" -d ") + out;
+            DEBUG_TRANSPONDER(DBGT "---- %s\n",buffer.c_str());
+        }
+        else if (!strcasecmp(fileType,"bz2"))
+        {
+            buffer = std::string("bunzip2 -f ") + out + tplFile;
+            DEBUG_TRANSPONDER(DBGT "---- %s\n",buffer.c_str());
+        }
+        else
+        {
+            esyslog("error [channelscan] unknown archive.\n");
+            goto fail;
+        }
 
-    result = SystemExec(buffer.c_str());
-    if (result)
-        goto fail;
+        result = SystemExec(buffer.c_str());
+        if (result)
+            goto fail;
 
-    return true;
+        return true;
+    }
+    else //Use www.kingofsat.net
+    {
+        int source;
+
+        if (Setup.DiSEqC > 0)
+        {
+            for (cDiseqc * diseqc = Diseqcs.First(); diseqc; diseqc = Diseqcs.Next(diseqc))
+            {
+                source = diseqc->Source();
+                std::string sat = (const char*)cSource::ToString(source);
+                sat = sat.erase(0,1);
+                if (!sat.substr(sat.find(".", 0) + 1, 1).compare(std::string{"0"}.c_str()))
+                    sat = sat.erase(sat.find(".", 0), 2);
+
+                 buffer = std::string("wget -t 2 -q --content-disposition 'https://ru.kingofsat.net/dl.php?pos=") + sat + std::string("&fkhz=0'") + std::string(" -N -P ") + out;
+                 //DEBUG_TRANSPONDER(DBGT "---- %s\n",buffer.c_str());
+                 result = SystemExec(buffer.c_str());
+            }
+        }
+        else
+        {
+            for (cSource * Source = Sources.First(); Source; Source = Sources.Next(Source))
+            {
+                source = Source->Code();
+                std::string sat = (const char*)cSource::ToString(source);
+                sat = sat.erase(0,1);
+                if (!sat.substr(sat.find(".", 0) + 1, 1).compare(std::string{"0"}.c_str()))
+                    sat = sat.erase(sat.find(".", 0), 2);
+
+                buffer = std::string("wget -t 2 -q --content-disposition 'https://ru.kingofsat.net/dl.php?pos=") + sat + std::string("&fkhz=0'") + std::string(" -N -P ") + out;
+                //DEBUG_TRANSPONDER(DBGT "---- %s\n",buffer.c_str());
+
+                result = SystemExec(buffer.c_str());
+            }
+        }
+        return true;
+    }
 
 fail:
     Skins.Message(mtError, tr("Transponders update failed!"));

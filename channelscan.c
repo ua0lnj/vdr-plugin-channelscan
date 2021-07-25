@@ -45,8 +45,21 @@ cMenuChannelscanSetup::cMenuChannelscanSetup()
     data_ = ScanSetup;
     tplFileTexts[0] = "tpl";
     tplFileTexts[1] = "ini";
-
+    tplUpdateTexts[0] = "Sat.url";
+    tplUpdateTexts[1] = "www.kingofsat.net";
     Setup();
+}
+
+eOSState cMenuChannelscanSetup::ProcessKey(eKeys key)
+{
+  int oldtplUpdateType = data_.tplUpdateType;
+
+  eOSState state = cMenuSetupPage::ProcessKey(key);
+
+  if (key != kNone && (data_.tplUpdateType != oldtplUpdateType))
+    Setup();
+
+  return state;
 }
 
 void cMenuChannelscanSetup::Setup()
@@ -55,7 +68,10 @@ void cMenuChannelscanSetup::Setup()
     Clear();
 
 //    Add(new cMenuEditBoolItem(tr("Enable Logfile"), &data_.EnableLogfile));
-    Add(new cMenuEditStraItem(tr("Transponders File Type"), &data_.tplFileType, 2, tplFileTexts));
+    Add(new cMenuEditStraItem(tr("Transponders Update Type"), &data_.tplUpdateType, 2, tplUpdateTexts));
+    if (data_.tplUpdateType == 0)
+        Add(new cMenuEditStraItem(tr("Transponders File Type"), &data_.tplFileType, 2, tplFileTexts));
+    else data_.tplFileType = 1;
 
     SetCurrent(Get(current));
     Display();
@@ -67,10 +83,12 @@ void cMenuChannelscanSetup::Store(void)
 #ifdef REELVDR
 //    SetupStore("Logfile", "channelscan", ScanSetup.EnableLogfile);
     SetupStore("tplFileType", "channelscan", ScanSetup.tplFileType);
+    SetupStore("tplUpdateType", "channelscan", ScanSetup.tplUpdateType);
 #else
 //    SetupStore("Logfile", ScanSetup.EnableLogfile);
 //    SetupStore("AddNewChannels", ScanSetup.AddNewChannels);
     SetupStore("tplFileType", ScanSetup.tplFileType);
+    SetupStore("tplUpdateType", ScanSetup.tplUpdateType);
 #endif
 }
 
@@ -205,6 +223,9 @@ bool cPluginChannelscan::SetupParse(const char *Name, const char *Value)
         return true;
     } else if (!strcasecmp(Name, "tplFileType")) {
         ScanSetup.tplFileType = atoi(Value);
+        return true;
+    } else if (!strcasecmp(Name, "tplUpdateType")) {
+        ScanSetup.tplUpdateType = atoi(Value);
         return true;
     } else
         return false;

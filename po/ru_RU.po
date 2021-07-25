@@ -486,6 +486,9 @@ msgstr "Транспондеры обновлены!"
 msgid "Transponders File Type"
 msgstr "Тип файла транспондеров"
 
+msgid "Transponders Update Type"
+msgstr "Способ обновления"
+
 msgid "Set ip subnet address"
 msgstr "Установить адрес подсети"
 

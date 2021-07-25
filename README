@@ -67,9 +67,10 @@ DVB-S/DVB-S2 Transponders list:
 - Can be .tpl or .ini files from vdr-config-dir/plugins/transponders
 You can change it in plugin's setup menu.
 
-- Format is:
+- Format for Sat.url is:
 [DVB]
 14=10985,H,35007,34,S2;8PSK;6555
+15=11985,V,25000,56
 nn=freq,pol,sr,fec,sys;mod;stream
 nn     - transponder number
 freq   - frequency
@@ -82,6 +83,20 @@ stream - stream id for multistream
 
 - if no sys present, use DVB_SYSTEM_0 and QPSK
 - if mod set to ALL, will be tried all modulations
+
+- Format for www.kingofsat.net is:
+[DVB]
+14=10985,H,35007,34,S2,8PSK ACM/VCM
+15=11985,V,25000,56,DVB-S,QPSK
+nn=freq,pol,sr,fec,sys,mod stream
+nn     - transponder number
+freq   - frequency
+pol    - polarization
+sr     - simbolrate
+fec    - fec
+sys    - delivery system (S2)
+mod    - modulation (QPSK, 8PSK, 16APSK, 32APSK)
+stream - not use
 
 
 DVB-S/DVB-S2 Nit scan:
@@ -96,9 +111,13 @@ If line commented or empty, the scanner uses Nit data from all scanned transpond
 
 DVB-S Transponders list update:
 ===============================
+You can select update type, from Sat.url file or from www.kingofsat.net.
+
 - Sat.url file from vdr-config-dir/plugins/transponders
 Each line is a link to a transponders file from Internet.
 Example http://www.fastsatfinder.com/bin/Transponders.zip
+
+- www.kingofsat.net have .ini files from European sats.
 
 
 IPTV Transponder list:

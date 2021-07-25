@@ -29,7 +29,7 @@
 #include <vdr/plugin.h>
 #include <string>
 
-static const char *VERSION = "1.1.4";
+static const char *VERSION = "1.2.0";
 static const char *DESCRIPTION = trNOOP("Scanning channels on Tuners and Iptv");
 static const char *MAINMENUENTRY = trNOOP("Channel Scan");
 
@@ -47,6 +47,7 @@ class cScanSetup
   public:
     int ServiceType;
     int tplFileType;
+    int tplUpdateType;
 //    int EnableLogfile;
 //    std::string logfile;
 //#ifndef REELVDR
@@ -114,12 +115,14 @@ class cMenuChannelscanSetup:public cMenuSetupPage
   private:
     cScanSetup data_;
     const char *tplFileTexts[2];
+    const char *tplUpdateTexts[2];
     virtual void Setup(void);
   protected:
     //virtual eOSState ProcessKey(eKeys Key);
       virtual void Store(void);
   public:
       cMenuChannelscanSetup(void);
+      virtual eOSState ProcessKey(eKeys);
 };
 
 #endif //  __CHANNELSCAN_H
