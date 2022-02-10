@@ -150,12 +150,9 @@ bool cScan::StartScanning(cScanParameters * scp)
     // activate Network Information  on auto scan
     //  assume nit scan
     scanParameter_ = *scp;
-    if ((scp->frequency < 5 && (scp->type == SAT || scp->type == SATS2 || scp->type == TERR || scp->type == CABLE)) || scp->type == TERR2)
-    {
-        if (scp->nitscan == 1) {
-            nitScan = true;
-        } else nitScan = false;
-    }
+    if (scp->nitscan == 1) {
+        nitScan = true;
+    } else nitScan = false;
 
     DEBUG_SCAN(DBGSCAN "  %s  %s \n", __PRETTY_FUNCTION__, nitScan ? "AUTO" : "MANUELL");
 
