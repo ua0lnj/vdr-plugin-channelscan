@@ -1530,8 +1530,8 @@ void NitFilter::Process(u_short Pid, u_char Tid, const u_char * Data, int Length
 #endif
             default: ;
             }
-          delete d;
           }
+          delete d;
       }
 #if VDRVERSNUM >= 20301
     StateKey.Remove(ChannelsModified);
