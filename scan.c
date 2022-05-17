@@ -147,12 +147,14 @@ void cScan::ShutDown()
 bool cScan::StartScanning(cScanParameters * scp)
 {
 
-    // activate Network Information  on auto scan
+    // activate Network Information
     //  assume nit scan
     scanParameter_ = *scp;
-    if (scp->nitscan == 1) {
+    if (scp->nitscan == 1 && scp->type != IPTV && scp->type != ANALOG)
+    {
         nitScan = true;
-    } else nitScan = false;
+    }
+    else nitScan = false;
 
     DEBUG_SCAN(DBGSCAN "  %s  %s \n", __PRETTY_FUNCTION__, nitScan ? "AUTO" : "MANUELL");
 
