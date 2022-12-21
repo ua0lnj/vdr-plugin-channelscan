@@ -113,7 +113,7 @@ int cTransponders::channel2Frequency(int region, int channel, int &bandwidth)
     {
         if (region == 100) offset = 2750000;
         if(bandwidth == -1)
-            bandwidth = BANDWIDTH_7_MHZ;
+            bandwidth = 7000000;
         if (channel >= 1 && channel <= 4)
         {
             return 38000000 - offset + (channel - 1) * 7000000;
@@ -125,7 +125,7 @@ int cTransponders::channel2Frequency(int region, int channel, int &bandwidth)
         if (channel >= 21 && channel <= 69)
         {
             if(bandwidth == -1)
-                bandwidth = BANDWIDTH_8_MHZ;
+                bandwidth = 8000000;
             return 474000000 - offset + 8000000 * (channel - 21);
         }
         if (channel == 101)
@@ -134,7 +134,7 @@ int cTransponders::channel2Frequency(int region, int channel, int &bandwidth)
         if (channel == 102 || channel == 103)
         {
             if(bandwidth == -1)
-                bandwidth = BANDWIDTH_8_MHZ;
+                bandwidth = 8000000;
             return 113000000- offset + 8000000 * (channel - 102);
         }
         if (channel >= 104 && channel <= 110)
@@ -146,19 +146,19 @@ int cTransponders::channel2Frequency(int region, int channel, int &bandwidth)
         if (channel >= 121 && channel <= 141)
         {
             if(bandwidth == -1)
-                bandwidth = BANDWIDTH_8_MHZ;
+                bandwidth = 8000000;
             return 306000000 - offset + 8000000 * (channel - 121);
         }
         if (channel == 173)
         {
             if(bandwidth == -1)
-                bandwidth = BANDWIDTH_8_MHZ;
+                bandwidth = 8000000;
             return 73000000 - offset;
         }
         if (channel == 181)
         {
             if(bandwidth == -1)
-                bandwidth = BANDWIDTH_8_MHZ;
+                bandwidth = 8000000;
             return 81000000 - offset;
         }
     }
@@ -166,7 +166,7 @@ int cTransponders::channel2Frequency(int region, int channel, int &bandwidth)
     {
         if (region == 101) offset = 2750000;
         if(bandwidth == -1)
-            bandwidth = BANDWIDTH_8_MHZ;
+            bandwidth = 8000000;
         if (channel >= 1 && channel <= 2)
         {
             return 52500000 - offset + (channel - 1) * 8000000;
@@ -188,7 +188,7 @@ int cTransponders::channel2Frequency(int region, int channel, int &bandwidth)
     {
         if (region == 102) offset = 2750000;
         if(bandwidth == -1)
-            bandwidth = BANDWIDTH_8_MHZ;
+            bandwidth = 8000000;
         if (channel >= 1 && channel <= 8)
         {
             return 114000000 - offset + (channel - 1) * 8000000;
@@ -202,7 +202,7 @@ int cTransponders::channel2Frequency(int region, int channel, int &bandwidth)
     {
         if (region == 103) offset = 2750000;
         if(bandwidth == -1)
-            bandwidth = BANDWIDTH_8_MHZ;
+            bandwidth = 8000000;
         if (channel >= 1 && channel <= 3)
         {
             return 52500000 - offset + (channel - 1) * 8000000;
@@ -244,7 +244,7 @@ int cTransponders::channel2Frequency(int region, int channel, int &bandwidth)
     {
         if (region == 104) offset = 1750000;
         if(bandwidth == -1)
-            bandwidth = BANDWIDTH_6_MHZ;
+            bandwidth = 6000000;
         if (channel >= 2 && channel <= 4)
         {
             return 57000000 - offset + (channel - 2) * 6000000;
@@ -266,7 +266,7 @@ int cTransponders::channel2Frequency(int region, int channel, int &bandwidth)
     {
         if (region == 105) offset = 1750000;
         if(bandwidth == -1)
-            bandwidth = BANDWIDTH_6_MHZ;
+            bandwidth = 6000000;
         if (channel >= 1 && channel <= 3)
         {
             return 93000000 - offset + (channel - 1) * 6000000;
@@ -848,12 +848,12 @@ void cTransponders::Load(cScanParameters * scp)
         else
         {
             int channel = scp->port;
-            int bandwidth = BANDWIDTH_AUTO;
+            int bandwidth = 0;
             int system = 0, streamId = 0;
             if (scp->bandwidth == 2)
-                bandwidth = BANDWIDTH_8_MHZ;
+                bandwidth = 8000000;
             else if (scp->bandwidth == 1)
-                bandwidth = BANDWIDTH_7_MHZ;
+                bandwidth = 7000000;
             if (scp->type == TERR2 && scp->streamId > 0)
             {
                 streamId = scp->streamId;
