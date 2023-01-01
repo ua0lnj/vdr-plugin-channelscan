@@ -852,8 +852,15 @@ void cTransponders::Load(cScanParameters * scp)
             int system = 0, streamId = 0;
             if (scp->bandwidth == 2)
                 bandwidth = 8000000;
-            else if (scp->bandwidth == 1)
+            if (scp->bandwidth == 1)
                 bandwidth = 7000000;
+            if (scp->bandwidth == 0)
+            {
+                if (scp->region == 0 && scp->frequency < 300000)
+                    bandwidth = 7000000;
+                else
+                    bandwidth = 8000000;
+            }
             if (scp->type == TERR2 && scp->streamId > 0)
             {
                 streamId = scp->streamId;
