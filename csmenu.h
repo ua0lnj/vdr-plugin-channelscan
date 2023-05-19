@@ -50,6 +50,7 @@
 
 #define device_IPTV  100
 #define device_SATIP 200
+#define device_MCLI  300
 
 bool IsCablePath(const std::string& path);
 bool IsSatellitePath(const std::string& path);

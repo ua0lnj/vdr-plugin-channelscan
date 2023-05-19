@@ -44,8 +44,9 @@
 #include "filter.h"
 #include "channellistbackupmenu.h"
 #include "rotortools.h"
-#ifdef REELVDR
+#ifdef USE_MCLI
 #include "../mcli/mcli_service.h"
+#include "../mcli/mcliheaders.h"
 #endif
 
 #include <bzlib.h>
@@ -374,8 +375,9 @@ void cMenuChannelscan::TunerAdd(int device, int adapter,int frontend, int stp,in
 
 void cMenuChannelscan::TunerDetection() {
 #ifdef USE_MCLI
-    cPlugin *plug = cPluginManager::GetPlugin("mcli");
-    if (plug && dynamic_cast<cThread*>(plug) && dynamic_cast<cThread*>(plug)->Active()) {
+  cPlugin *plug = cPluginManager::GetPlugin("mcli");
+
+  if (plug && dynamic_cast<cThread*>(plug) && dynamic_cast<cThread*>(plug)->Active()) {
         int stp = 0;
         int mtp = 0;
         mclituner_info_t info;
@@ -409,6 +411,9 @@ void cMenuChannelscan::TunerDetection() {
                 if (alreadyThere == false) {
                     srcTypes[srcTuners] = stp;
                     srcDevice[srcTuners] = i;
+                    srcMS[srcTuners] = mtp;
+                    srcAdapter[srcTuners] = device_MCLI;
+                    srcFrontend[srcTuners] = 0;
                     switch (info.type[i])
                     {
                         case FE_DVBS2:
@@ -428,7 +433,7 @@ void cMenuChannelscan::TunerDetection() {
                 }
             }
         }
-    } else {
+  } else {
 #endif
     int a = 0;
     int stp = 0;
@@ -684,7 +689,7 @@ void cMenuChannelscan::TunerDetection() {
         }
     }
 #ifdef USE_MCLI
-    }
+  }
 #endif
 }
 

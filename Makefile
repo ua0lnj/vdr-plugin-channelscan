@@ -65,9 +65,15 @@ DEFINES += -DPLUGIN_NAME_I18N='"$(PLUGIN)"' -DVDRDIR=\"$(VDRDIR)\"  -DNDEBUG
 ifdef REELVDR
   DEFINES += -DREELVDR
 endif
-
+# rotor
 ifeq ($(shell test -f $(VDRDIR)/PLUGINS/src/rotor/rotor.h; echo $$?),0)
   DEFINES += -DHAVE_ROTOR
+endif
+# mcli
+ifeq ($(shell test -f $(VDRDIR)/PLUGINS/src/mcli/mcli_service.h; echo $$?),0)
+  DEFINES += -DUSE_MCLI
+  XML_INC ?= $(shell xml2-config --cflags)
+  INCLUDES += -I. $(XML_INC)
 endif
 
 ### causes segfaults Premiere Direkt sometimes
