@@ -34,17 +34,17 @@
 #include <string>
 
 
-#undef  DBG
-#undef  ERR
-#define DBG " Channelscan DEBUG: -- "
-#define ERR " Channelscan ERROR: -- "
+//#undef  DBG
+//#undef  ERR
+//#define DBG " Channelscan DEBUG: -- "
+//#define ERR " Channelscan ERROR: -- "
 
-#ifdef DEBUG_CHANNELSCAN
-#  undef DLOG
-#  define DLOG(x...) dsyslog(x)
-#else
-# define DLOG(x...)
-#endif
+//#ifdef DEBUG_CHANNELSCAN
+//#  undef DLOG
+//#  define DLOG(x...) dsyslog(x)
+//#else
+//# define DLOG(x...)
+//#endif
 
 // -- Class cDirectoryEntry --------------------------------------
 

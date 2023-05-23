@@ -41,7 +41,7 @@
 #include "channelscan.h"
 #include "csmenu.h"
 #include "scan.h"
-#include "debug.h"
+//#include "debug.h"
 #include "rotortools.h"
 
 //#define SCAN_DELAY 25           // test tp 19.2E 12207/12522
@@ -50,11 +50,12 @@
 #define DVBS2_LOCK_TIMEOUT 3000
 #define DVBC_LOCK_TIMEOUT 3000
 
-#define DBGSCAN " debug [scan]"
+#define DBGSCAN "DEBUG [scan]"
 
-//#define DEBUG_SCAN(format, args...) printf (format, ## args)
-#ifndef DEBUG_SCAN
-#define DEBUG_SCAN(format, args...)
+#ifdef DEBUG_SCAN
+#define LOG_SCAN(x...) dsyslog(x)
+#else
+#define LOG_SCAN(x...)
 #endif
 
 #if 0
@@ -68,7 +69,7 @@ using std::cout;
 cScan::cScan()
 {
     origUpdateChannels = Setup.UpdateChannels;
-    DEBUG_SCAN(DBGSCAN "  %s  \n", __PRETTY_FUNCTION__);
+    LOG_SCAN(DBGSCAN "  %s  \n", __PRETTY_FUNCTION__);
 
     ::Setup.UpdateChannels = 0; // to prevent VDRs own update
     cTransponders & transponders = cTransponders::GetInstance();
@@ -99,7 +100,7 @@ cScan::~cScan()
 {
     Cancel(5);
 
-    DEBUG_SCAN(DBGSCAN "  %s  \n", __PRETTY_FUNCTION__);
+    LOG_SCAN(DBGSCAN "  %s  \n", __PRETTY_FUNCTION__);
     ::Setup.UpdateChannels = origUpdateChannels;
 
 
@@ -132,7 +133,7 @@ cScan::~cScan()
         delete EFilter;
         EFilter = NULL;
     }
-    DEBUG_SCAN("DEBUG [channelscan]  %s end cTransponders::Destroy(); \n", __PRETTY_FUNCTION__);
+    LOG_SCAN("DEBUG [channelscan]  %s end cTransponders::Destroy(); \n", __PRETTY_FUNCTION__);
 }
 
 void cScan::ShutDown()
@@ -156,26 +157,26 @@ bool cScan::StartScanning(cScanParameters * scp)
     }
     else nitScan = false;
 
-    DEBUG_SCAN(DBGSCAN "  %s  %s \n", __PRETTY_FUNCTION__, nitScan ? "AUTO" : "MANUELL");
+    LOG_SCAN(DBGSCAN "  %s  %s \n", __PRETTY_FUNCTION__, nitScan ? "AUTO" : "MANUELL");
 
     cTransponders & transponders = cTransponders::GetInstance();
     // nit scan takes transponder lists from SI Network Information Table
 
     if (transponders.GetNITStartTransponder() && nitScan)
     {
-        DEBUG_SCAN(DBGSCAN " tp --   ssGetTransponders (NIT) \n");
+        LOG_SCAN(DBGSCAN " tp --   ssGetTransponders (NIT) \n");
         cMenuChannelscan::scanState = ssGetTransponders;
     }
     else
     {
-        DEBUG_SCAN(DBGSCAN " tp --   ssGetChannels  \n");
+        LOG_SCAN(DBGSCAN " tp --   ssGetChannels  \n");
         cMenuChannelscan::scanState = ssGetChannels;
     }
 
     if (cMenuChannelscan::scanState != ssGetTransponders && transponders.v_tp_.size() == 0)
     {
-        DEBUG_SCAN(DBGSCAN "  %s   return FALSE  \n", __PRETTY_FUNCTION__);
-        esyslog(ERR " Empty Transponderlist size %d\n",(int)transponders.v_tp_.size());
+        LOG_SCAN(DBGSCAN "  %s   return FALSE  \n", __PRETTY_FUNCTION__);
+        esyslog(" Empty Transponderlist size %d\n",(int)transponders.v_tp_.size());
         cMenuChannelscan::scanState = ssNoTransponder;
         return false;
     }
@@ -202,7 +203,7 @@ bool cScan::StartScanning(cScanParameters * scp)
 
     sourceType = scp->type;
 
-    DEBUG_SCAN("SET DEBUG [scan.c] scanning_on_receiving_device %d  TRUE \n", cardnr);
+    LOG_SCAN("SET DEBUG [scan.c] scanning_on_receiving_device %d  TRUE \n", cardnr);
     scanning_on_receiving_device = true;
 
     if (!cDevice::GetDevice(cardnr))
@@ -321,7 +322,7 @@ int cScan::ScanServices(bool noSDT)
 
     cMenuChannelscan::scanState = ssGetChannels;
 #ifdef WITH_EIT
-    DEBUG_SCAN("DEBUG [channelscan]: With EIT\n");
+    LOG_SCAN("DEBUG [channelscan]: With EIT\n");
     EFilter = new cEitFilter();
 #endif
     PFilter = new PatFilter();
@@ -381,7 +382,7 @@ int cScan::ScanServices(bool noSDT)
     DEBUG_printf("%s afterloop:%4.2fs\n", __PRETTY_FUNCTION__, (float)difftime(tt_, tt));
 
     /* if (cMenuChannelscan::scanState >= ssInterrupted && !PFilter->EndOfScan()) {
-       DEBUG_SCAN("DEBUG [channelscan]: ScanServices aborted %d \n", cMenuChannelscan::scanState);
+       LOG_SCAN("DEBUG [channelscan]: ScanServices aborted %d \n", cMenuChannelscan::scanState);
        } */
 
     tt_ = time(NULL);
@@ -438,7 +439,7 @@ int cScan::ScanServices(bool noSDT)
 //-------------------------------------------------------------------------
 void cScan::ScanNitServices()
 {
-    DEBUG_SCAN("DEBUG [cs]; ScanNITService \n");
+    LOG_SCAN("DEBUG [cs]; ScanNITService \n");
     nitFilter_ = new NitFilter;
     nitFilter_->mode = sourceType;
 
@@ -574,40 +575,40 @@ void cScan::ScanDVB_S(cTransponder * tp, cChannel * c)
                 tp->SetModulation(PSK_8);
              if (tp->System() == DVB_SYSTEM_2)
                 static_cast < cSatTransponder * >(tp)->SetRollOff(ROLLOFF_35);
-             DEBUG_SCAN (" DEBUG [DVB_S]; trying AUTO: freq: %d srate:%d   mod: %d  \n",
+             LOG_SCAN("DEBUG [DVB_S]; trying AUTO: freq: %d srate:%d   mod: %d  \n",
                 tp->Frequency(), tp->Symbolrate(), tp->Modulation());
              break;
         case 1:
              tp->SetModulation(QPSK);
              if (tp->System() == DVB_SYSTEM_2)
                 static_cast < cSatTransponder * >(tp)->SetRollOff(ROLLOFF_35);
-             DEBUG_SCAN (" DEBUG [DVB_S]; trying QPSK: freq: %d srate:%d   mod: %d  \n",
+             LOG_SCAN("DEBUG [DVB_S]; trying QPSK: freq: %d srate:%d   mod: %d  \n",
                 tp->Frequency(), tp->Symbolrate(), tp->Modulation());
              break;
         case 2:
              tp->SetModulation(PSK_8);
              if (tp->System() == DVB_SYSTEM_2)
                 static_cast < cSatTransponder * >(tp)->SetRollOff(ROLLOFF_35);
-             DEBUG_SCAN (" DEBUG [DVB_S]; trying PSK8: freq: %d srate:%d   mod: %d  \n",
+             LOG_SCAN("DEBUG [DVB_S]; trying PSK8: freq: %d srate:%d   mod: %d  \n",
                 tp->Frequency(), tp->Symbolrate(), tp->Modulation());
              break;
         case 3:
              if (tp->System() != DVB_SYSTEM_2) continue;
              tp->SetModulation(APSK_16);
              static_cast < cSatTransponder * >(tp)->SetRollOff(ROLLOFF_35);
-             DEBUG_SCAN (" DEBUG [DVB_S]; trying APSK16: freq: %d srate:%d   mod: %d  \n",
+             LOG_SCAN("DEBUG [DVB_S]; trying APSK16: freq: %d srate:%d   mod: %d  \n",
                 tp->Frequency(), tp->Symbolrate(), tp->Modulation());
              break;
         case 4:
              if (tp->System() != DVB_SYSTEM_2) continue;
              tp->SetModulation(APSK_32);
              static_cast < cSatTransponder * >(tp)->SetRollOff(ROLLOFF_35);
-             DEBUG_SCAN (" DEBUG [DVB_S]; trying APSK32: freq: %d srate:%d   mod: %d  \n",
+             LOG_SCAN("DEBUG [DVB_S]; trying APSK32: freq: %d srate:%d   mod: %d  \n",
                 tp->Frequency(), tp->Symbolrate(), tp->Modulation());
              break;
 
         default:
-            DEBUG_SCAN("No such modulation %d", mod);
+            LOG_SCAN("No such modulation %d", mod);
             break;
         }
 
@@ -616,7 +617,7 @@ void cScan::ScanDVB_S(cTransponder * tp, cChannel * c)
         system = tp->System();
         fec = static_cast < cSatTransponder * >(tp)->FEC();
 
-        DEBUG_SCAN ("DEBUG [DVB_S] - channel: freq: %d srate:%d   mod: %d  \n",
+        LOG_SCAN("DEBUG [DVB_S] - channel: freq: %d srate:%d   mod: %d  \n",
              c->Frequency(), tp->Symbolrate(), tp->Modulation());
 
         /* SAT>IP use Rid to assign frontend */
@@ -627,9 +628,9 @@ void cScan::ScanDVB_S(cTransponder * tp, cChannel * c)
 
         if (!device->SwitchChannel(c, device->IsPrimaryDevice()))
         {
-            DEBUG_SCAN(ERR "SwitchChannel(%d)  failed\n", c->Frequency());
+            LOG_SCAN("SwitchChannel(%d)  failed\n", c->Frequency());
 #if HAVE_ROTOR
-            DEBUG_SCAN(ERR " try Switch rotor \n");
+            LOG_SCAN("try Switch rotor \n");
 
             struct
             {
@@ -675,10 +676,7 @@ void cScan::ScanDVB_S(cTransponder * tp, cChannel * c)
 
             if (device->HasLock(lockTimeout))
             {
-                DEBUG_SCAN ("debug  [scan] -- Got LOCK @ transponder %d  mod  %d fec %d  ---------- \n",
-                     c->Transponder(), dtp.Modulation(), dtp.CoderateH());
-
-                dsyslog ("[scan] -- Got LOCK @ transponder %d  mod  %d fec %d  ---------- \n",
+                LOG_SCAN("debug  [scan] -- Got LOCK @ transponder %d  mod  %d fec %d  ---------- \n",
                      c->Transponder(), dtp.Modulation(), dtp.CoderateH());
 
                 if (cMenuChannelscan::scanState == ssGetTransponders)
@@ -705,11 +703,8 @@ void cScan::ScanDVB_S(cTransponder * tp, cChannel * c)
             else
             {
                 lastLocked = 0;
-                DEBUG_SCAN ("debug  [scan] -- NO LOCK @ transponder %d  mod  %d fec %d ---------- \n",
+                LOG_SCAN("debug  [scan] -- NO LOCK @ transponder %d  mod  %d fec %d ---------- \n",
                      c->Transponder(), dtp.Modulation(), dtp.CoderateH());
-
-                dsyslog (" debug  [channelscan] ------ NO LOCK after %ims @ transponder %d  -------------\n",
-                     lockTimeout, c->Transponder());
             }
 
         }
@@ -755,7 +750,7 @@ void cScan::ScanDVB_T(cTransponder * tp, cChannel * c)
     {
         for (n = 0; n < (detailedSearch & 2 ? 3 : 1); n++)
         {
-            DLOG("DEBUG [channelscan]:  DVB_T detailedSearch %X \n", detailedSearch);
+            LOG_SCAN("DEBUG [channelscan]:  DVB_T detailedSearch %X \n", detailedSearch);
             if (cMenuChannelscan::scanState >= ssInterrupted)
                return;
 
@@ -796,11 +791,11 @@ void cScan::ScanDVB_T(cTransponder * tp, cChannel * c)
                 // retune with offset
                 if (!device->SwitchChannel(c, device->IsPrimaryDevice()))
                 {
-                    esyslog(ERR "SwitchChannel(c)  failed\n");
+                    esyslog("SwitchChannel(c)  failed\n");
                     break;
                 }
 
-                DLOG("%i Tune %i \n", retries, frequency);
+                LOG_SCAN("Tune %i \n", frequency);
                 DEBUG_printf("\nSleeping %s %d\n", __PRETTY_FUNCTION__, __LINE__);
                 usleep(1500 * 1000);    // inside loop
                 if (lastLocked)
@@ -811,8 +806,8 @@ void cScan::ScanDVB_T(cTransponder * tp, cChannel * c)
                 for (m = 0; m < (detailedSearch & 1 ? 8 : 2); m++)
                 {
                     response = getStatus();
-                    DLOG("DEBUG [channelscan]:  DVB_T detailedSearch  %X  m %d \n", detailedSearch, m);
-                    DLOG("RESPONSE %x\n", response);
+                    LOG_SCAN("DEBUG [channelscan]:  DVB_T detailedSearch  %X  m %d \n", detailedSearch, m);
+                    LOG_SCAN("RESPONSE %x\n", response);
 
                     if ((response & 0x10) == 0x10)  // Lock
                         break;
@@ -827,7 +822,7 @@ void cScan::ScanDVB_T(cTransponder * tp, cChannel * c)
 
                 if (device->HasLock(timeout))
                 {
-                    DLOG(DBG "  ------ HAS LOCK ------\n");
+                    LOG_SCAN(DBGSCAN "  ------ HAS LOCK ------\n");
                     ScanServices(); //dtmb & isdb-t ??
                     lastLocked = 1;
                     plps++;
@@ -836,7 +831,7 @@ void cScan::ScanDVB_T(cTransponder * tp, cChannel * c)
                     lastLocked = 0;
 
                 if (p == 0) Muxs = otherMux;
-                DLOG("DEBUG [channelscan]: found %d total %d mux %d muxs %d plps %d t2plp %d\n",foundNum,totalNum,otherMux,Muxs,plps,t2plp[p]);
+                LOG_SCAN(DBGSCAN "found %d total %d mux %d muxs %d plps %d t2plp %d\n",foundNum,totalNum,otherMux,Muxs,plps,t2plp[p]);
                 if (plps == 0) break; //must be streamId = 0
                 if (!nitScan && plps > Muxs) break;
             }
@@ -881,7 +876,7 @@ void cScan::ScanDVB_C(cTransponder * tp, cChannel * c)
         tp->SetFrequency(frequency);
     }
 
-    DEBUG_SCAN("DEBUG channelscan DVB_C f:  %f, Modulation %d SR %d\n", frequency / 1e6, tp->Modulation(), tp->Symbolrate());
+    LOG_SCAN("DEBUG channelscan DVB_C f:  %f, Modulation %d SR %d\n", frequency / 1e6, tp->Modulation(), tp->Symbolrate());
 
     if (tp->Modulation() != QAM_AUTO)
         fixedModulation = 1;
@@ -890,7 +885,7 @@ void cScan::ScanDVB_C(cTransponder * tp, cChannel * c)
 
     for (int sr = 0; sr < 3; sr++)
     {
-        DEBUG_SCAN("DEBUG [channelscan]: srModes %d \n", srModes);
+        LOG_SCAN("DEBUG [channelscan]: srModes %d \n", srModes);
 
 
         switch (srModes)
@@ -898,22 +893,22 @@ void cScan::ScanDVB_C(cTransponder * tp, cChannel * c)
         case 0:                // auto
             if (srstat != -1)   // sr not found
             {
-                DEBUG_SCAN("Use default symbol rate %i\n", srtab[srstat]);
-                DEBUG_SCAN("Use  probed  symbol rate  %i\n", srtab[srstat]);
+                LOG_SCAN("Use default symbol rate %i\n", srtab[srstat]);
+                LOG_SCAN("Use  probed  symbol rate  %i\n", srtab[srstat]);
                 tp->SetSymbolrate(srtab[srstat]);
                 break;
             }
             // there is intentionaly no break !!!
         case 1:                // try all  symbol rates
-            DEBUG_SCAN("try symbol rate  %i\n", srtab[sr]);
+            LOG_SCAN("try symbol rate  %i\n", srtab[sr]);
             tp->SetSymbolrate(srtab[sr]);
             break;
         case 2:                // fix sybol rate
-            DEBUG_SCAN("try symbol rate  %i\n", tp->Symbolrate());
+            LOG_SCAN("try symbol rate  %i\n", tp->Symbolrate());
             /// already set
             break;
         default:
-            DEBUG_SCAN(" Error, check csmenu.c DVB_C \n");
+            LOG_SCAN("Error, check csmenu.c DVB_C \n");
             break;
         }
 
@@ -941,13 +936,13 @@ void cScan::ScanDVB_C(cTransponder * tp, cChannel * c)
 
             if (!device->SwitchChannel(c, device->IsPrimaryDevice()))
             {
-                esyslog(ERR "Primary SwitchChannel(c)  failed\n");
+                esyslog("Primary SwitchChannel(c)  failed\n");
                 break;
             }
 
             if (lastLocked)
             {
-                DEBUG_SCAN("Wait last lock %d \n", mods);
+                LOG_SCAN("Wait last lock %d \n", mods);
                 DEBUG_printf("Sleeping %s %d\n", __PRETTY_FUNCTION__, __LINE__);
                 sleep(1);       // avoid sticky last lock
             }
@@ -956,7 +951,7 @@ void cScan::ScanDVB_C(cTransponder * tp, cChannel * c)
 
             if (waitLock(timeout))
             {
-                DLOG(DBG "  ------------- HAS LOCK -------------     \n");
+                LOG_SCAN(DBGSCAN "  ------------- HAS LOCK -------------     \n");
                 if (!ScanServices())
                     ScanServices(); // Lock without services? retry
                 lastLocked = 1;
@@ -1006,7 +1001,7 @@ void cScan::ScanATSC(cTransponder * tp, cChannel * c)
         tp->SetFrequency(frequency);
     }
 
-    DEBUG_SCAN("DEBUG channelscan ATSC f:  %f, Modulation %d \n", frequency / 1e6, tp->Modulation());
+    LOG_SCAN("DEBUG channelscan ATSC f:  %f, Modulation %d \n", frequency / 1e6, tp->Modulation());
 
     modulation = tp->Modulation();
     if (tp->Modulation() != 0)
@@ -1037,20 +1032,20 @@ void cScan::ScanATSC(cTransponder * tp, cChannel * c)
 
         if (!device->SwitchChannel(c, device->IsPrimaryDevice()))
         {
-            esyslog(ERR "Primary SwitchChannel(c)  failed\n");
+            esyslog("Primary SwitchChannel(c)  failed\n");
             break;
         }
 
         if (lastLocked)
         {
-            DEBUG_SCAN("Wait last lock %d \n", mods);
+            LOG_SCAN("Wait last lock %d \n", mods);
             DEBUG_printf("Sleeping %s %d\n", __PRETTY_FUNCTION__, __LINE__);
             sleep(1);       // avoid sticky last lock
         }
 
         if (device->HasLock(timeout))
         {
-            DLOG(DBG "  ------ HAS LOCK ------\n");
+            LOG_SCAN(DBGSCAN "  ------ HAS LOCK ------\n");
             ScanServices(); //atsc ??
 
             lastLocked = 1;
@@ -1065,7 +1060,7 @@ void cScan::ScanDVB_I(cTransponder * tp, cChannel * c)
 {
     int services;
 
-    DLOG("DEBUG [channelscan]:  DVB_I Search \n");
+    LOG_SCAN("DEBUG [channelscan]:  DVB_I Search \n");
     if (cMenuChannelscan::scanState >= ssInterrupted)
         return;
 
@@ -1195,7 +1190,7 @@ void cScan::ScanAnalog(cTransponder * tp, cChannel * c)
 {
     region = scanParameter_.region;
 
-    DLOG("DEBUG [channelscan]: Analog Search \n");
+    LOG_SCAN("DEBUG [channelscan]: Analog Search \n");
     if (cMenuChannelscan::scanState >= ssInterrupted)
         return;
 
@@ -1238,7 +1233,7 @@ void cScan::ScanAnalog(cTransponder * tp, cChannel * c)
 
     cDevice::PrimaryDevice()->SwitchChannel(c,true);
 
-    DLOG("Tune %i \n", frequency);
+    LOG_SCAN("Tune %i \n", frequency);
     DEBUG_printf("\nSleeping %s %d\n", __PRETTY_FUNCTION__, __LINE__);
 //    usleep(1500 * 1000);
     if (lastLocked)
@@ -1582,7 +1577,7 @@ void cScan::Action()
             }
         }
 
-        DEBUG_SCAN("DEBUG [channelscan]: loop through  transponders ++++  size %d ++++++++\n", (int)transponders.v_tp_.size());
+        LOG_SCAN("DEBUG [channelscan]: loop through  transponders ++++  size %d ++++++++\n", (int)transponders.v_tp_.size());
         unsigned int oldTransponderMapSize = transponderMap.size();
         int i = 1, ntv, nradio;
         time_t t_in, t_out;
@@ -1601,7 +1596,7 @@ void cScan::Action()
             frequency = (*tp)->Frequency();
             parameters = (*tp)->Parameters();
 
-            DEBUG_SCAN("DEBUG [channelscan]: scan f: %d  \n", frequency);
+            LOG_SCAN("DEBUG [channelscan]: scan f: %d  \n", frequency);
 
             if (sys == TERR || sys == TERR2 || sys == DMB_TH || sys == ISDB_T)
                 ScanDVB_T(*tp, c.get());
@@ -1691,13 +1686,13 @@ void cScan::Action()
 
     int duration = time(NULL) - startTime;
 
-    DEBUG_SCAN(" --- End of transponderlist. End of scan! Duratation %d ---\n", duration);
+    LOG_SCAN(" --- End of transponderlist. End of scan! Duratation %d ---\n", duration);
     // avoid warning wihout debug
 
     if (cMenuChannelscan::scanState == ssGetChannels)
         cMenuChannelscan::scanState = ssSuccess;
 
-    DLOG(DBG " End of scan scanState: ssSuccess!\n");
+    LOG_SCAN(DBGSCAN " End of scan scanState: ssSuccess!\n");
 #if VDRVERSNUM < 20301
     Channels.Save();
 #else
@@ -1718,7 +1713,7 @@ void cScan::Action()
 
 void cScan::AddTransponders(int system)
 {
-    DEBUG_SCAN(" --- AddTransponders \n");
+    LOG_SCAN(" --- AddTransponders \n");
     int cnt = 0;
     cTransponders & transponders = cTransponders::GetInstance();
     for (tpMapIter itr = transponderMap.begin(); itr != transponderMap.end(); ++itr)
@@ -1752,7 +1747,7 @@ void cScan::DumpHdTransponder()
         std::map < int, cSatTransponder >::const_iterator it;
         cSatTransponder t = hdTransponders.begin()->second;
 
-        DEBUG_SCAN("HD transponder : %6d -> mod %d srate %d  fec %d rolloff %d \n", (*hdTransponders.begin()).first, t.Modulation(), t.Symbolrate(), t.FEC(), t.RollOff());
+        LOG_SCAN("HD transponder : %6d -> mod %d srate %d  fec %d rolloff %d \n", (*hdTransponders.begin()).first, t.Modulation(), t.Symbolrate(), t.FEC(), t.RollOff());
 
         hdTransponders.erase(hdTransponders.begin());
     }
@@ -1766,9 +1761,9 @@ void cScan::ClearMap()
     while (!transponderMap.empty())
     {
         if (transponderMap.begin()->second)
-            DEBUG_SCAN("delete tp: %6d\n", (*transponderMap.begin()).first);
+            LOG_SCAN("delete tp: %6d\n", (*transponderMap.begin()).first);
         else
-            DEBUG_SCAN(" tp: %6d deleted already\n", (*transponderMap.begin()).first);
+            LOG_SCAN(" tp: %6d deleted already\n", (*transponderMap.begin()).first);
 
         transponderMap.erase(transponderMap.begin());
     }

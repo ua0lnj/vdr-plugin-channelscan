@@ -42,8 +42,11 @@
 #include <bzlib.h>
 #include <vdr/diseqc.h>
 
-//#define DEBUG_TRANSPONDER(format, args...) printf (format, ## args)
-#define DEBUG_TRANSPONDER(format, args...)
+#ifdef DEBUG_TRANSPONDER
+#define LOG_TRANSPONDER(x...) dsyslog(x)
+#else
+#define LOG_TRANSPONDER(x...)
+#endif
 //#define DEBUG_printf(format, args...) printf (format, ## args)
 #define DEBUG_printf(format, args...)
 
@@ -430,7 +433,7 @@ cSatTransponder::cSatTransponder():cTransponder(0), pol_(' '), fec_(9)
     modulation_ = 0;
     system_ = DVB_SYSTEM_1;
     streamId_ = 0;
-    DEBUG_TRANSPONDER(DBGT " new cSatTransponder\n");
+    LOG_TRANSPONDER(DBGT " new cSatTransponder\n");
 }
 
 cSatTransponder::cSatTransponder(int Frequency, char Pol, int SymbolRate, int Modulation, int FEC, int RollOff, int System, int StreamId):cTransponder(Frequency), pol_(Pol), fec_(FEC), rolloff_(RollOff)
@@ -441,12 +444,12 @@ cSatTransponder::cSatTransponder(int Frequency, char Pol, int SymbolRate, int Mo
     system_     = System;
     streamId_   = StreamId;
 
-    DEBUG_TRANSPONDER(DBGT " new cSatTransponder(sys: %d,f: %d,p: %c,sRate: %d,mod:%d ,fec: %d, stream:%d\n", system_, frequency_, pol_, symbolrate_, modulation_, fec_, streamId_);
+    LOG_TRANSPONDER(DBGT " new cSatTransponder(sys: %d,f: %d,p: %c,sRate: %d,mod:%d ,fec: %d, stream:%d\n", system_, frequency_, pol_, symbolrate_, modulation_, fec_, streamId_);
 }
 
 bool cSatTransponder::SetTransponderData(cChannel * c, int Code)
 {
-    DEBUG_TRANSPONDER(DBGT " SetSatTransponderData(source:%d,f:%6d,p:%c,sRate:%d,mod:%3d,fec:%d,sys:%d,stream:%d\n", Code, frequency_, pol_, symbolrate_, modulation_, fec_, system_, streamId_);
+    LOG_TRANSPONDER(DBGT " SetSatTransponderData(source:%d,f:%6d,p:%c,sRate:%d,mod:%3d,fec:%d,sys:%d,stream:%d\n", Code, frequency_, pol_, symbolrate_, modulation_, fec_, system_, streamId_);
     cDvbTransponderParameters dtp (c->Parameters());
     dtp.SetCoderateH(fec_);
     dtp.SetModulation(modulation_);
@@ -461,7 +464,7 @@ bool cSatTransponder::SetTransponderData(cChannel * c, int Code)
 bool cSatTransponder::Parse(const string & Line)
 {
 
-    DEBUG_TRANSPONDER(" %s  %s \n", __PRETTY_FUNCTION__, Line.c_str());
+    LOG_TRANSPONDER(" %s  %s \n", __PRETTY_FUNCTION__, Line.c_str());
     string tpNumb(Line);
 
     int index = tpNumb.find_first_of('=');
@@ -567,7 +570,7 @@ bool cSatTransponder::Parse(const string & Line)
 
     //printf("Parse: Freq: %i FEC: %i (%s)\n", frequency_, fec_,sFec.c_str() );
 
-    //DEBUG_TRANSPONDER(" transp.c Parse()  return true f:%d p%c sRate %d fec %d \n", frequency_,pol_,symbolrate_,fec_);
+    //LOG_TRANSPONDER(" transp.c Parse()  return true f:%d p%c sRate %d fec %d \n", frequency_,pol_,symbolrate_,fec_);
     // dsyslog (" transp.c Parse()  return true f:%d p%c sRate %d fec %d ", frequency_,pol_,symbolrate_,fec_);
 
     return true;
@@ -625,7 +628,7 @@ cTerrTransponder::cTerrTransponder(int ChannelNr, int Frequency, int Bandwidth, 
     transmission_ = TRANSMISSION_MODE_AUTO;
     streamId_ = StreamId;
 
-    DEBUG_TRANSPONDER(DBGT " SetTerrTransponderData(system: %d,f:%d, bw: %d , stream: %d\n", system_, frequency_, bandwidth_, streamId_);
+    LOG_TRANSPONDER(DBGT " SetTerrTransponderData(system: %d,f:%d, bw: %d , stream: %d\n", system_, frequency_, bandwidth_, streamId_);
 
 }
 
@@ -663,7 +666,7 @@ void cTerrTransponder::SetStreamId(int strid)
 
 cCableTransponder::cCableTransponder(int ChannelNr, int Frequency, int sRate, int Mod):cTransponder(Frequency)
 {
-    DEBUG_TRANSPONDER(DBGT " new cCableTransponder Channel: %d f: %d, sRate :%d  mod :%d\n", ChannelNr, Frequency, sRate, Mod);
+    LOG_TRANSPONDER(DBGT " new cCableTransponder Channel: %d f: %d, sRate :%d  mod :%d\n", ChannelNr, Frequency, sRate, Mod);
 
     channelNum_ = ChannelNr;
     symbolrate_ = sRate;
@@ -679,7 +682,7 @@ bool cCableTransponder::SetTransponderData(cChannel * c, int Code)
 {
     int type = cSource::stCable;
 
-    DEBUG_TRANSPONDER(DBGT " SetCableTransponderData(f:%d, m :%d ,sRate: %d, fec %d\n", frequency_, modulation_, symbolrate_, fec_h_);
+    LOG_TRANSPONDER(DBGT " SetCableTransponderData(f:%d, m :%d ,sRate: %d, fec %d\n", frequency_, modulation_, symbolrate_, fec_h_);
     cDvbTransponderParameters dtp(c->Parameters());
     dtp.SetModulation(modulation_);
     dtp.SetCoderateH(fec_h_);
@@ -701,7 +704,7 @@ cAtscTransponder::cAtscTransponder(int ChannelNr, int Frequency, int Mod):cTrans
         VSB_16,
     };
 
-    DEBUG_TRANSPONDER(DBGT " new cAtscTransponder Channel: %d f: %d, mod :%d\n", ChannelNr, Frequency, Mod);
+    LOG_TRANSPONDER(DBGT " new cAtscTransponder Channel: %d f: %d, mod :%d\n", ChannelNr, Frequency, Mod);
 
     channelNum_ = ChannelNr;
     modulation_ = modTab[Mod];
@@ -715,7 +718,7 @@ bool cAtscTransponder::SetTransponderData(cChannel * c, int Code)
 {
     int type = cSource::stAtsc;
 
-    DEBUG_TRANSPONDER(DBGT " SetAtscTransponderData(f:%d, m :%d\n", frequency_, modulation_);
+    LOG_TRANSPONDER(DBGT " SetAtscTransponderData(f:%d, m :%d\n", frequency_, modulation_);
     cDvbTransponderParameters dtp(c->Parameters());
     dtp.SetModulation(modulation_);
     return c->SetTransponderData(type, frequency_, symbolrate_, dtp.ToString('A'), true);
@@ -733,7 +736,7 @@ cIptvTransponder::cIptvTransponder(int Frequency, cString Parameters):cTranspond
     channelNum_ = 0;
     parameters_ = Parameters;
 
-    DEBUG_TRANSPONDER(DBGT " new cIptvTransponder f: %d, p %s \n", Frequency, (const char*)Parameters);
+    LOG_TRANSPONDER(DBGT " new cIptvTransponder f: %d, p %s \n", Frequency, (const char*)Parameters);
 }
 
 cIptvTransponder::~cIptvTransponder()
@@ -744,7 +747,7 @@ bool cIptvTransponder::SetTransponderData(cChannel * c, int Code)
 {
     int type = ('I' << 24);
 
-    DEBUG_TRANSPONDER(DBGT " SetIptvTransponderData f:%d, p:%s\n", frequency_, (const char*)parameters_);
+    LOG_TRANSPONDER(DBGT " SetIptvTransponderData f:%d, p:%s\n", frequency_, (const char*)parameters_);
 
     return c->SetTransponderData(type, frequency_, 0, parameters_, true);
 }
@@ -761,7 +764,7 @@ cPvrTransponder::cPvrTransponder(int ChannelNr, int Frequency, cString Parameter
     channelNum_ = ChannelNr;
     parameters_ = Parameters;
 
-    DEBUG_TRANSPONDER(DBGT " new cPvrTransponder Channel: %d f: %d, p %s \n", ChannelNr, Frequency, (const char*)Parameters);
+    LOG_TRANSPONDER(DBGT " new cPvrTransponder Channel: %d f: %d, p %s \n", ChannelNr, Frequency, (const char*)Parameters);
 }
 
 cPvrTransponder::~cPvrTransponder()
@@ -772,7 +775,7 @@ bool cPvrTransponder::SetTransponderData(cChannel * c, int Code)
 {
     int type = ('V' << 24);
 
-    DEBUG_TRANSPONDER(DBGT " SetPvrTransponderData f:%d, p:%s\n", frequency_, (const char*)parameters_);
+    LOG_TRANSPONDER(DBGT " SetPvrTransponderData f:%d, p:%s\n", frequency_, (const char*)parameters_);
 
     return c->SetTransponderData(type, frequency_, 0, parameters_, true);
 }
@@ -790,7 +793,7 @@ cTransponders::cTransponders():sourceCode_(0)
 
 void cTransponders::Load(cScanParameters * scp)
 {
-    DEBUG_TRANSPONDER(DBGT "  %s \n", __PRETTY_FUNCTION__);
+    LOG_TRANSPONDER(DBGT "  %s \n", __PRETTY_FUNCTION__);
     Clear();
 
     sourceCode_ = scp->source;
@@ -824,7 +827,7 @@ void cTransponders::Load(cScanParameters * scp)
             }
             scp->modulation = StatToS2Mod(scp->modulation);
 
-            DEBUG_TRANSPONDER(DBGT " Load single SatTransponderData(f:\"%d\", pol[%c] -- symbolRate  %d,  modulation %d  fec %d sys %d stream %d\n", scp->frequency, scp->polarization,
+            LOG_TRANSPONDER(DBGT " Load single SatTransponderData(f:\"%d\", pol[%c] -- symbolRate  %d,  modulation %d  fec %d sys %d stream %d\n", scp->frequency, scp->polarization,
              scp->symbolrate, scp->modulation, fec, system, streamId);
 
             cSatTransponder *t = new cSatTransponder(scp->frequency, scp->polarization, scp->symbolrate, scp->modulation, fec, 0, system, streamId);
@@ -975,13 +978,13 @@ void cTransponders::Load(cScanParameters * scp)
     else
         esyslog(DBGT "   Wrong  sourceCode %d\n", sourceCode_);
 
-    DEBUG_TRANSPONDER(DBGT "  %s end \n", __PRETTY_FUNCTION__);
+    LOG_TRANSPONDER(DBGT "  %s end \n", __PRETTY_FUNCTION__);
 }
 
 bool cTransponders::LoadNitTransponder(int Source)
 {
 
-    DEBUG_TRANSPONDER(DBGT " %s ... \"%d\" \n", __PRETTY_FUNCTION__, Source);
+    LOG_TRANSPONDER(DBGT " %s ... \"%d\" \n", __PRETTY_FUNCTION__, Source);
 
     int found = 0;
 
@@ -1004,7 +1007,7 @@ bool cTransponders::LoadNitTransponder(int Source)
 
             if (transponderList.fail())
             {
-                DEBUG_TRANSPONDER(DBGT " can not load %s  try to load next list\n", (*it).c_str());
+                LOG_TRANSPONDER(DBGT " can not load %s  try to load next list\n", (*it).c_str());
                 transponderList.close();
                 transponderList.clear();
                 continue;
@@ -1049,7 +1052,7 @@ bool cTransponders::LoadNitTransponder(int Source)
 
             if (transponderList.fail())
             {
-                DEBUG_TRANSPONDER(DBGT " can not load %s  try to load next list\n", fileName_.c_str());
+                LOG_TRANSPONDER(DBGT " can not load %s  try to load next list\n", fileName_.c_str());
                 transponderList.close();
                 transponderList.clear();
                 continue;
@@ -1094,14 +1097,14 @@ bool cTransponders::LoadNitTransponder(int Source)
                 found = lc;
                 nitStartTransponder_.reset(new cSatTransponder);
                 nitStartTransponder_->Parse(line);
-                DEBUG_TRANSPONDER(DBGT " found first  entry  %d: %s \n", lc, line.c_str());
+                LOG_TRANSPONDER(DBGT " found first  entry  %d: %s \n", lc, line.c_str());
             }
         }
         else
         {
             if (found > 0 && found == lc - 1)
             {
-                DEBUG_TRANSPONDER(DBGT " return true  found: %d: lc:%d \n", found, lc);
+                LOG_TRANSPONDER(DBGT " return true  found: %d: lc:%d \n", found, lc);
                 return true;
             }
         }
@@ -1118,7 +1121,7 @@ bool cTransponders::LoadTpl(const string & tplFileName)
 {
 
     lockMs_ = 500;
-    DEBUG_TRANSPONDER(DBGT "LoadSatTpl  %s\n", tplFileName.c_str());
+    LOG_TRANSPONDER(DBGT "LoadSatTpl  %s\n", tplFileName.c_str());
 
     string tplFileNameComp(tplFileName + ".bz2");
     ifstream transponderList(tplFileNameComp.c_str(), std::ios_base::in | std::ios_base::binary);
@@ -1206,7 +1209,7 @@ bool cTransponders::LoadTpl(const string & tplFileName)
 bool cTransponders::LoadIpl(const string & iplFileName, cScanParameters * scp)
 {
 
-    DEBUG_TRANSPONDER(DBGT "LoadIpl  %s\n", iplFileName.c_str());
+    LOG_TRANSPONDER(DBGT "LoadIpl  %s\n", iplFileName.c_str());
 
     ifstream transponderList(iplFileName.c_str(), std::ios_base::in | std::ios_base::binary);
     stringstream buffer;
@@ -1265,7 +1268,7 @@ bool cTransponders::LoadIpl(const string & iplFileName, cScanParameters * scp)
         find = line.length();
         scp->port=stoi(line.substr(pos,find-pos));
 
-        DEBUG_TRANSPONDER(DBGT "LoadIpl subnet start %d.%d.%d.%d end %d.%d.%d.%d port %d\n",
+        LOG_TRANSPONDER(DBGT "LoadIpl subnet start %d.%d.%d.%d end %d.%d.%d.%d port %d\n",
             scp->startip[0], scp->startip[1], scp->startip[2], scp->startip[3], scp->endip[0], scp->endip[1], scp->endip[2], scp->endip[3], scp->port);
         // create transponders
         CalcIptvTpl(0, scp);
@@ -1303,10 +1306,10 @@ bool cTransponders::GetTpl()
         {
             while ( fscanf(file,"%s",tplAddress) != EOF)
             {
-                DEBUG_TRANSPONDER(DBGT "----- %s\n",tplAddress);
+                LOG_TRANSPONDER(DBGT "----- %s\n",tplAddress);
 
                 buffer = std::string("wget ") + tplAddress + std::string(" -N -P ") + out;
-                DEBUG_TRANSPONDER(DBGT "---- %s\n",buffer.c_str());
+                LOG_TRANSPONDER(DBGT "---- %s\n",buffer.c_str());
 
                 result = SystemExec(buffer.c_str());
                 if (!result)
@@ -1327,12 +1330,12 @@ bool cTransponders::GetTpl()
         if (!strcasecmp(fileType,"zip"))
         {
             buffer = std::string("unzip -o ") + out + tplFile + std::string(" -d ") + out;
-            DEBUG_TRANSPONDER(DBGT "---- %s\n",buffer.c_str());
+            LOG_TRANSPONDER(DBGT "---- %s\n",buffer.c_str());
         }
         else if (!strcasecmp(fileType,"bz2"))
         {
             buffer = std::string("bunzip2 -f ") + out + tplFile;
-            DEBUG_TRANSPONDER(DBGT "---- %s\n",buffer.c_str());
+            LOG_TRANSPONDER(DBGT "---- %s\n",buffer.c_str());
         }
         else
         {
@@ -1361,7 +1364,7 @@ bool cTransponders::GetTpl()
                     sat = sat.erase(sat.find(".", 0), 2);
 
                  buffer = std::string("wget -t 2 -q --content-disposition 'https://ru.kingofsat.net/dl.php?pos=") + sat + std::string("&fkhz=0'") + std::string(" -N -P ") + out;
-                 //DEBUG_TRANSPONDER(DBGT "---- %s\n",buffer.c_str());
+                 //LOG_TRANSPONDER(DBGT "---- %s\n",buffer.c_str());
                  result = SystemExec(buffer.c_str());
             }
         }
@@ -1376,7 +1379,7 @@ bool cTransponders::GetTpl()
                     sat = sat.erase(sat.find(".", 0), 2);
 
                 buffer = std::string("wget -t 2 -q --content-disposition 'https://ru.kingofsat.net/dl.php?pos=") + sat + std::string("&fkhz=0'") + std::string(" -N -P ") + out;
-                //DEBUG_TRANSPONDER(DBGT "---- %s\n",buffer.c_str());
+                //LOG_TRANSPONDER(DBGT "---- %s\n",buffer.c_str());
 
                 result = SystemExec(buffer.c_str());
             }
@@ -1685,7 +1688,7 @@ string cTransponders::TplFileName(int satCodec)
     else
         tmp += ".ini";
 
-    DEBUG_TRANSPONDER(DBGT "Transponder filename %s\n",tmp.c_str());
+    LOG_TRANSPONDER(DBGT "Transponder filename %s\n",tmp.c_str());
 
     return tmp;
 }
@@ -1778,11 +1781,11 @@ namespace setup
         configDir.erase(pos - 1);
 
         if (FileType == "configDirecory")   // vdr config base directory
-            DEBUG_TRANSPONDER(DBGT " Load configDir %s  \n", configDir.c_str());
+            LOG_TRANSPONDER(DBGT " Load configDir %s  \n", configDir.c_str());
         else if (FileType == "setup")   // returns plugins/setup dir; change to  "configDir"
             configDir += "/plugins/setup";
 
-        DEBUG_TRANSPONDER(DBGT " Load configDir %s  \n", configDir.c_str());
+        LOG_TRANSPONDER(DBGT " Load configDir %s  \n", configDir.c_str());
         return configDir;
     }
 }

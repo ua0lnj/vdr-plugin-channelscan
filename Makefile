@@ -75,6 +75,13 @@ ifeq ($(shell test -f $(VDRDIR)/PLUGINS/src/mcli/mcli_service.h; echo $$?),0)
   XML_INC ?= $(shell xml2-config --cflags)
   INCLUDES += -I. $(XML_INC)
 endif
+### Debug
+#DEFINES +=-DDEBUG_CSMENU
+#DEFINES +=-DDEBUG_SCAN
+#DEFINES +=-DDEBUG_TRANSPONDER
+#DEFINES +=-DDEBUG_SDT
+#DEFINES +=-DDEBUG_PAT_PMT
+#DEFINES +=-DDEBUG_NIT
 
 ### causes segfaults Premiere Direkt sometimes
 #DEFINES += -DWITH_EIT

@@ -37,7 +37,7 @@
 #include "transponders.h"
 #include "channelscan.h"
 #include "csmenu.h"
-#include "debug.h"
+//#include "debug.h"
 
 
 using std::string;

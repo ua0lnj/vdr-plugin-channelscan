@@ -34,7 +34,7 @@
 #include <vdr/diseqc.h>
 #include <vdr/menu.h>
 #ifdef REELVDR
-#include <vdr/debug.h>
+//#include <vdr/debug.h>
 #include <vdr/s2reel_compat.h>
 #endif
 #include <vdr/sources.h>
@@ -69,9 +69,12 @@ using std::cout;
 using std::cerr;
 using std::endl;
 
-#define DBGM " debug [cs menu]"
-//#define DEBUG_CSMENU(format, args...) printf (format, ## args)
-#define DEBUG_CSMENU(format, args...)
+#define DBGM "DEBUG [cs menu]"
+#ifdef DEBUG_CSMENU
+#define LOG_CSMENU(x...) dsyslog(x)
+#else
+#define LOG_CSMENU(x...)
+#endif
 
 // XXX check all static vars!
 typedef vector < int >::const_iterator iConstIter;
@@ -357,7 +360,7 @@ cMenuChannelscan::cMenuChannelscan(int src, int freq, int symrate, char pol, boo
 }
 
 void cMenuChannelscan::TunerAdd(int device, int adapter,int frontend, int stp,int mtp,char *txt) {
-    DEBUG_CSMENU(DBGM "ADD srcTuners %d device %d adapter %d frontend %d stp %d txt %s mtp %d\n",srcTuners,device,adapter,frontend,stp,txt,mtp);
+    LOG_CSMENU(DBGM "ADD srcTuners %d device %d adapter %d frontend %d stp %d txt %s mtp %d\n",srcTuners,device,adapter,frontend,stp,txt,mtp);
     //vdr valid device number
     srcDevice[srcTuners] = device;
     //vdr valid device number
@@ -463,8 +466,8 @@ void cMenuChannelscan::TunerDetection() {
         if (device)
         {
 
-            DEBUG_CSMENU(DBGM "tuner %d numprovsys %d type %s name %s\n",tuner,device->NumProvidedSystems(),(const char*)device->DeviceType(),(const char*)device->DeviceName());
-//dsyslog("tuner %d numprovsys %d type %s name %s \n",tuner,device->NumProvidedSystems(),(const char*)device->DeviceType(),(const char*)device->DeviceName());
+            LOG_CSMENU(DBGM "tuner %d numprovsys %d type %s name %s\n",tuner,device->NumProvidedSystems(),(const char*)device->DeviceType(),(const char*)device->DeviceName());
+
             iptv   = strcmp(device->DeviceType(),"IPTV")   == 0;
             satip  = strcmp(device->DeviceType(),"SAT>IP") == 0;
             strdev = strcmp(device->DeviceType(),"STRDev") == 0;
@@ -494,8 +497,8 @@ void cMenuChannelscan::TunerDetection() {
 
             if (!dvbdevice && !satip && !iptv) continue;                      //unknown device or output device
 
-            DEBUG_CSMENU(DBGM "tuner %d adapter %d satip %d iptv %d\n", tuner, adapter, satip ? 1 : 0, iptv ? 1 : 0);
-//dsyslog( "tuner %d adapter %d satip %d iptv %d\n", tuner, adapter, satip ? 1 : 0, iptv ? 1 : 0);
+            LOG_CSMENU(DBGM "tuner %d adapter %d satip %d iptv %d\n", tuner, adapter, satip ? 1 : 0, iptv ? 1 : 0);
+
             if (device && device->Priority()<0 ) // omit tuners that are recording
             {
                 if (device->ProvidesSource(cSource::stTerr))                                      //Terr
@@ -701,7 +704,7 @@ void cMenuChannelscan::InitLnbs()
         if (diseqc != Diseqcs.First() && diseqc->Source() == Diseqcs.Prev(diseqc)->Source())
             continue;
 
-        DEBUG_CSMENU(DBGM " --Menu --- Diseqc Sources  %d --- \n", diseqc->Source());
+        LOG_CSMENU(DBGM " --Menu --- Diseqc Sources  %d --- \n", diseqc->Source());
         loopSources.push_back(diseqc->Source());
         lnbs++;
     }
@@ -740,7 +743,7 @@ void cMenuChannelscan::Set()
         plpStat = 0;
     }
 
-    DEBUG_CSMENU(DBGM "------------source %d %s %d current %d device %d tuner %d frontend %d\n",source, *cSource::ToString(source), srcTypes[currentTuner], current, srcDevice[currentTuner], currentTuner, srcFrontend[currentTuner]);
+    LOG_CSMENU(DBGM "------------source %d %s %d current %d device %d tuner %d frontend %d\n",source, *cSource::ToString(source), srcTypes[currentTuner], current, srcDevice[currentTuner], currentTuner, srcFrontend[currentTuner]);
 
     Add(new cMenuEditStraItem(tr("Search Mode"), (int *)&scanMode, 2, searchTexts));
     // filter
@@ -1067,7 +1070,7 @@ void cMenuChannelscan::Set()
 void cMenuChannelscan::SetInfoBar() // Check with  cMenuScanActive
 {
 
-    DEBUG_CSMENU(" Menus --- %s -- scanState %d ---  \n", __PRETTY_FUNCTION__, scanState);
+    LOG_CSMENU(DBGM " Menus --- %s -- scanState %d ---  \n", __PRETTY_FUNCTION__, scanState);
 
     switch (scanState)
     {
@@ -1263,7 +1266,7 @@ eOSState cMenuChannelscan::ProcessKey(eKeys Key)
         scp.frequency = frequency;
 
 #if 0
-        DEBUG_CSMENU(" DEBUG LOAD TRANSPONDER(S)  ---- \n" " Scanning on Tuner \t%d\n" " SourceType  \t%d \n" " Source \t%d \n" " frequency \t%d \n" " Bandwidth \t%d \n" " Polarisation \t%c \n" " Symbolrate \t%d \n" " fec Stat  \t%d \n" " detail search \t%d \n" " modulationStat  \t%d \n" " Symbolrate mode \t%d region %d\n", scp.device, scp.type, scp.source, scp.frequency, scp.bandwidth, scp.polarization, scp.symbolrate, scp.fec, scp.detail, scp.modulation, scp.symbolrate_mode, scp.region);
+        LOG_CSMENU(DBGM "LOAD TRANSPONDER(S)  ---- \n" " Scanning on Tuner \t%d\n" " SourceType  \t%d \n" " Source \t%d \n" " frequency \t%d \n" " Bandwidth \t%d \n" " Polarisation \t%c \n" " Symbolrate \t%d \n" " fec Stat  \t%d \n" " detail search \t%d \n" " modulationStat  \t%d \n" " Symbolrate mode \t%d region %d\n", scp.device, scp.type, scp.source, scp.frequency, scp.bandwidth, scp.polarization, scp.symbolrate, scp.fec, scp.detail, scp.modulation, scp.symbolrate_mode, scp.region);
 #endif
 
         switch (Key)
@@ -1523,9 +1526,7 @@ void cMenuChannelscan::SwitchChannel()
 }
 
 // --- cMenuScanActive -------------------------------------------------------
-#ifndef DBG
 #define DBG "DEBUG [cMenuScanActive]: "
-#endif
 
 #define COLUMNWIDTH 24
 
@@ -1541,7 +1542,7 @@ cMenuScanActive::cMenuScanActive(cScanParameters * sp, bool isWiz):cOsdMenu(tr("
 
     scp = sp;
 
-    DEBUG_CSMENU(" Menus --- %s -- freq  %d ---  \n", __PRETTY_FUNCTION__, scp->frequency);
+    LOG_CSMENU(DBG " Menus --- %s -- freq  %d ---  \n", __PRETTY_FUNCTION__, scp->frequency);
 
     oldUpdateChannels =::Setup.UpdateChannels;
     ::Setup.UpdateChannels = 0; // prevent  VDRs own update Channel
@@ -1564,7 +1565,7 @@ cMenuScanActive::cMenuScanActive(cScanParameters * sp, bool isWiz):cOsdMenu(tr("
 
     if (cTransponders::GetInstance().GetNITStartTransponder())
     {
-        DEBUG_CSMENU(" Menus ---  Set NIT Auto search \n");
+        LOG_CSMENU(DBG " Menus ---  Set NIT Auto search \n");
         cMenuChannelscan::scanState = ssGetTransponders;
     }
 //    esyslog("%s ssGetChannels?=%d", __PRETTY_FUNCTION__, cMenuChannelscan::scanState == ssGetChannels);
@@ -1576,8 +1577,8 @@ cMenuScanActive::cMenuScanActive(cScanParameters * sp, bool isWiz):cOsdMenu(tr("
 
     if (!Scan->StartScanning(scp))
     {
-        DEBUG_CSMENU(" Scan() returns failure   \n");
-        esyslog(ERR "  Tuner Error\n");
+        LOG_CSMENU(DBG " Scan() returns failure   \n");
+        esyslog("  Tuner Error\n");
         cMenuChannelscan::scanState = ssInterrupted;
     }
     if (scp->type == SAT || scp->type == SATS2)
@@ -1903,7 +1904,7 @@ void cMenuScanActive::ErrorMessage()
 void cMenuScanActive::DeleteDummy()
 {
 #if VDRVERSNUM < 20301
-    DEBUG_CSMENU(" --- %s --- %d -- \n", __PRETTY_FUNCTION__, Channels.Count());
+    LOG_CSMENU(DBG " --- %s --- %d -- \n", __PRETTY_FUNCTION__, Channels.Count());
     if (Channels.Count() < 3)
         return;
 
@@ -1913,7 +1914,7 @@ void cMenuScanActive::DeleteDummy()
     Channels.ReNumber();
 #else
     LOCK_CHANNELS_READ;
-    DEBUG_CSMENU(" --- %s --- %d -- \n", __PRETTY_FUNCTION__, Channels->Count());
+    LOG_CSMENU(DBG " --- %s --- %d -- \n", __PRETTY_FUNCTION__, Channels->Count());
     if (Channels->Count() < 3)
         return;
 
@@ -3152,7 +3153,7 @@ eOSState cMenuSelectChannelList::Delete()   // backup active list
 void cMenuSelectChannelList::DumpDir()
 {
     for (cDirectoryEntry * d = DirectoryFiles.First(); d; d = DirectoryFiles.Next(d))
-        DEBUG_CSMENU(" d->Entry: %s, Dir? %s %s  \n", d->Title(), d->IsDirectory()? "YES" : "NO", d->FileName());
+        LOG_CSMENU(DBG " d->Entry: %s, Dir? %s %s  \n", d->Title(), d->IsDirectory()? "YES" : "NO", d->FileName());
 }
 
 // --- Class cMenuSelectChannelListFunctions ---------------------------------------

@@ -49,9 +49,12 @@ std::map < int, int >TblVersions;
 std::map < int, const cSatTransponder > hdTransponders;
 //std::list<int, cTransponder> hdTransponders;
 
-#define DBGSDT " debug [sdt filter] "
-//#define DEBUG_SDT(format, args...) printf (format, ## args)
-#define DEBUG_SDT(format, args...)
+#define DBGSDT "DEBUG [sdt filter] "
+#ifdef DEBUG_SDT
+#define LOG_SDT(x...) dsyslog(x)
+#else
+#define LOG_SDT(x...)
+#endif
 
 #if 0
 #define DEBUG_printf(format, args...) printf (format, ## args)
@@ -59,11 +62,10 @@ std::map < int, const cSatTransponder > hdTransponders;
 #define DEBUG_printf(format, args...)
 #endif
 
-//#define DEBUG_PAT_PMT
 #ifdef DEBUG_PAT_PMT
-#define DBGPAT(a...) { cString s = cString::sprintf(a); fprintf(stderr, "%s\n", *s); dsyslog("%s", *s); }
+#define LOG_PAT(x...) dsyslog(x)
 #else
-#define DBGPAT(a...)
+#define LOG_PAT(x...)
 #endif
 
 #define PMT_SCAN_TIMEOUT  1000 // ms
@@ -375,7 +377,7 @@ void PatFilter::SetSdtFilter(SdtFilter * SdtFilter)
 void PatFilter::SetStatus(bool On)
 {
   cMutexLock MutexLock(&mutex);
-  DBGPAT("PAT filter set status %d", On);
+  LOG_PAT("PAT filter set status %d", On);
   cFilter::SetStatus(On);
   Trigger();
   num = 0;
@@ -389,7 +391,7 @@ void PatFilter::Trigger(int Sid)
   numPmtEntries = 0;
   if (Sid >= 0) {
      sid = Sid;
-     DBGPAT("PAT filter trigger SID %d", Sid);
+     LOG_PAT("PAT filter trigger SID %d", Sid);
      }
 }
 
@@ -402,7 +404,7 @@ bool PatFilter::PmtVersionChanged(int PmtPid, int Sid, int Version, bool SetNewV
             if (SetNewVersion)
                pmtVersion[i] = Version;
             else
-               DBGPAT("PMT %d  %2d %5d %2d -> %2d", Transponder(), i, PmtPid, pmtVersion[i], Version);
+               LOG_PAT("PMT %d  %2d %5d %2d -> %2d", Transponder(), i, PmtPid, pmtVersion[i], Version);
             return true;
             }
          break;
@@ -429,7 +431,7 @@ void PatFilter::Process(u_short Pid, u_char Tid, const u_char *Data, int Length)
         if (!pat.CheckCRCAndParse())
            return;
         if (pat.getVersionNumber() != patVersion) {
-           DBGPAT("PAT %d ver %d -> getver %d", Transponder(), patVersion, pat.getVersionNumber());
+           LOG_PAT("PAT %d ver %d -> getver %d", Transponder(), patVersion, pat.getVersionNumber());
            if (pmtIndex >= 0) {
               Del(GetPmtPid(pmtIndex), SI::TableIdPMT);
               pmtIndex = -1;
@@ -438,12 +440,12 @@ void PatFilter::Process(u_short Pid, u_char Tid, const u_char *Data, int Length)
            SI::PAT::Association assoc;
            for (SI::Loop::Iterator it; pat.associationLoop.getNext(assoc, it); ) {
                if (!assoc.isNITPid() && numPmtEntries < CMAXPMTENTRIES) {
-                  DBGPAT("    PMT pid %2d %5d  SID %5d", numPmtEntries, assoc.getPid(), assoc.getServiceId());
+                  LOG_PAT("    PMT pid %2d %5d  SID %5d", numPmtEntries, assoc.getPid(), assoc.getServiceId());
                   pmtId[numPmtEntries] = MakePmtId(assoc.getPid(), assoc.getServiceId());
                   pmtVersion[numPmtEntries] = -1;
                   if (sid == assoc.getServiceId()) {
                      pmtIndex = numPmtEntries;
-                     DBGPAT("sid = %d pmtIndex = %d", sid, pmtIndex);
+                     LOG_PAT("sid = %d pmtIndex = %d", sid, pmtIndex);
                      }
                   numPmtEntries++;
                   }
@@ -767,15 +769,15 @@ void PatFilter::Process(u_short Pid, u_char Tid, const u_char *Data, int Length)
      }
   if (timer.TimedOut()) {
      if (pmtIndex >= 0)
-        DBGPAT("PMT timeout %d", pmtIndex);
+        LOG_PAT("PMT timeout %d", pmtIndex);
      SwitchToNextPmtPid();
      timer.Set(PMT_SCAN_TIMEOUT);
      }
 
-    DBGPAT("PAT sdtfinished %d nosdt %d numpmt %d num %d\n",sdtfinished,noSDT,numPmtEntries,num);
+    LOG_PAT("PAT sdtfinished %d nosdt %d numpmt %d num %d\n",sdtfinished,noSDT,numPmtEntries,num);
     if ((sdtfinished || (noSDT && numPmtEntries>0)) && num >= numPmtEntries)
     {
-        DBGPAT("PAT num %i sid %i  EOS \n", num, numPmtEntries);
+        LOG_PAT("PAT num %i sid %i  EOS \n", num, numPmtEntries);
         endofScan = true;
     }
 }
@@ -806,7 +808,7 @@ SdtFilter::SdtFilter(PatFilter * PatFilter)
 
 void SdtFilter::SetStatus(bool On)
 {
-cMutexLock MutexLock(&mutex);
+    cMutexLock MutexLock(&mutex);
     cFilter::SetStatus(On);
     sectionSyncer.Reset();
 }
@@ -899,7 +901,7 @@ void SdtFilter::Process(u_short Pid, u_char Tid, const u_char * Data, int Length
 
                     sd->serviceName.getText(NameBufDeb, ShortNameBufDeb, sizeof(NameBufDeb), sizeof(ShortNameBufDeb));
 
-                    DEBUG_SDT(DBGSDT "Name %s --  ServiceType: %X: AddServiceType %d, Sid %i, running %i \n", NameBufDeb, sd->getServiceType(), AddServiceType, SiSdtService.getServiceId(), SiSdtService.getRunningStatus());
+                    LOG_SDT(DBGSDT "Name %s --  ServiceType: %X: AddServiceType %d, Sid %i, running %i \n", NameBufDeb, sd->getServiceType(), AddServiceType, SiSdtService.getServiceId(), SiSdtService.getRunningStatus());
 
                     switch (sd->getServiceType())
                     {
@@ -921,25 +923,25 @@ void SdtFilter::Process(u_short Pid, u_char Tid, const u_char * Data, int Length
 //                             esyslog("%s sd->getServiceType()=%d  AddServiceType=%d CAmode %d",__FUNCTION__, sd->getServiceType(), AddServiceType, SiSdtService.getFreeCaMode());
 /*                            if(SiSdtService.getFreeCaMode() && (AddServiceType == ST_ALL_FTA_ONLY || AddServiceType == ST_TV_FTA_ONLY || AddServiceType == ST_HDTV_FTA_ONLY)) // (! FTA) break
                             {
-                                DEBUG_SDT(DBGSDT "+++++++++++++++  NOT FTA CHANNEL: Skip %s +++++++++++++++ \n", NameBufDeb);
+                                LOG_SDT(DBGSDT "+++++++++++++++  NOT FTA CHANNEL: Skip %s +++++++++++++++ \n", NameBufDeb);
                                 break;
                             }
 */
                             if (!(sd->getServiceType() == 0x11 || sd->getServiceType() == 0x19 || sd->getServiceType() == 0x20) && (AddServiceType == ST_HDTV_ONLY || AddServiceType == ST_HDTV_FTA_ONLY))  // (! HD TV && HDOnly) break
                             {
-                                DEBUG_SDT(DBGSDT "+++++++++++++++  NO Found HD CHANNEL: Skip %s +++++++++++++++ \n", NameBufDeb);
+                                LOG_SDT(DBGSDT "+++++++++++++++  NO Found HD CHANNEL: Skip %s +++++++++++++++ \n", NameBufDeb);
                                 break;
                             }
                             // Add only radio
                             if (sd->getServiceType() != 2 && AddServiceType == ST_RADIO_ONLY) // (TV && radioOnly) break
                             {
-                                DEBUG_SDT(DBGSDT " Add nur Radio  aber nur TV Sender gefunden  SID skip %d \n", sd->getServiceType());
+                                LOG_SDT(DBGSDT " Add nur Radio  aber nur TV Sender gefunden  SID skip %d \n", sd->getServiceType());
                                 break;
                             }
                             // Add only tv
                             if (sd->getServiceType() == 2 && (AddServiceType == ST_TV_ONLY || AddServiceType == ST_HDTV_ONLY || AddServiceType == ST_TV_FTA_ONLY || AddServiceType == ST_HDTV_FTA_ONLY))  // RadioSender && (TVonly || HDTvonly) break
                             {
-                                DEBUG_SDT(DBGSDT " Add nur TV  aber nur RadioSender gefunden  SID skip %d \n", sd->getServiceType());
+                                LOG_SDT(DBGSDT " Add nur TV  aber nur RadioSender gefunden  SID skip %d \n", sd->getServiceType());
                                 break;
                             }
                             char NameBuf[1024];
@@ -1011,7 +1013,7 @@ void SdtFilter::Process(u_short Pid, u_char Tid, const u_char * Data, int Length
 
                             if (channel)
                             {
-                                DEBUG_SDT(DBGSDT "---------------------- Channelscan Add Chanel pn %s ps %s pp %s --------------\n", pn, ps, pp);
+                                LOG_SDT(DBGSDT "---------------------- Channelscan Add Chanel pn %s ps %s pp %s --------------\n", pn, ps, pp);
 #if VDRVERSNUM < 20301
                                 channel->SetId(sdt.getOriginalNetworkId(), sdt.getTransportStreamId(), SiSdtService.getServiceId(), channel->Rid());
 
@@ -1044,7 +1046,7 @@ void SdtFilter::Process(u_short Pid, u_char Tid, const u_char * Data, int Length
                                 patFilter->Trigger(SiSdtService.getServiceId());
                                 if (SiSdtService.getServiceId() == 0x12)
                                 {
-                                    DEBUG_SDT(DBGSDT "-------- found ServiceID for PremiereDirekt!  %s - %s - %s --------- \n", pn, ps, pp);
+                                    LOG_SDT(DBGSDT "-------- found ServiceID for PremiereDirekt!  %s - %s - %s --------- \n", pn, ps, pp);
                                     //eitFilter->Trigger();
                                 }
                             }
@@ -1188,13 +1190,12 @@ void SdtMuxFilter::Process(u_short Pid, u_char Tid, const u_char * Data, int Len
  * Nitscan add new transponders.
  */
 
-#ifdef DBG
-# undef DBG
+#define DBGNIT  "DEBUG [cs-nit]: "
+#ifdef DEBUG_NIT
+#define LOG_NIT(x...) dsyslog(x)
+#else
+#define LOG_NIT(x...)
 #endif
-#define DBGNIT  " DEBUG [cs-nit]: "
-//#define DEBUG_NIT(format, args...) printf (format, ## args)
-#define DEBUG_NIT(format, args...)
-
 #define MAXNETWORKNAME Utf8BufSize(256)
 
 NitFilter::NitFilter()
@@ -1244,7 +1245,7 @@ void NitFilter::Process(u_short Pid, u_char Tid, const u_char * Data, int Length
     int cnt = ++TblVersions[nit.getVersionNumber()];
     if (cnt > nit.getLastSectionNumber() + 1)
     {
-        DEBUG_NIT(DBGNIT "DEBUG [nit]: ++  NIT Version %d found %d times \n", cnt, nit.getVersionNumber());
+        LOG_NIT(DBGNIT "++  NIT Version %d found %d times \n", cnt, nit.getVersionNumber());
         endofScan = true;
         return;
     }
@@ -1265,7 +1266,7 @@ void NitFilter::Process(u_short Pid, u_char Tid, const u_char * Data, int Length
            }
          delete d;
          }
-     DEBUG_NIT(DBGNIT ": %02X %2d %2d %2d %s %d %d '%s'\n", Tid, nit.getVersionNumber(), nit.getSectionNumber(), nit.getLastSectionNumber(), *cSource::ToString(Source()), nit.getNetworkId(), Transponder(), NetworkName);
+     LOG_NIT(DBGNIT ": %02X %2d %2d %2d %s %d %d '%s'\n", Tid, nit.getVersionNumber(), nit.getSectionNumber(), nit.getLastSectionNumber(), *cSource::ToString(Source()), nit.getNetworkId(), Transponder(), NetworkName);
      }
 
   sectionSeen_[nit.getSectionNumber()]++;
@@ -1282,7 +1283,7 @@ void NitFilter::Process(u_short Pid, u_char Tid, const u_char * Data, int Length
   SI::NIT::TransportStream ts;
   for (SI::Loop::Iterator it; nit.transportStreamLoop.getNext(ts, it); ) {
 
-      DEBUG_NIT(DBGNIT " -- found TS_ID %d\n",  ts.getTransportStreamId());
+      LOG_NIT(DBGNIT " -- found TS_ID %d\n",  ts.getTransportStreamId());
 
       SI::Descriptor *d;
 
@@ -1303,7 +1304,7 @@ void NitFilter::Process(u_short Pid, u_char Tid, const u_char * Data, int Length
                   default: ;
                   }
                 Frequencies[n++] = f;
-                DEBUG_NIT(DBGNIT "    Frequencies[%d] = %d\n", n - 1, f);
+                LOG_NIT(DBGNIT "    Frequencies[%d] = %d\n", n - 1, f);
                 }
             }
          else
@@ -1444,7 +1445,7 @@ void NitFilter::Process(u_short Pid, u_char Tid, const u_char * Data, int Length
                  SI::CharArray a = d->getData();
                  System = DVB_SYSTEM_2;
                  t2plp[a[3]] = 1;
-                 DEBUG_NIT(DBGNIT "found t2 plpid %d %d\n",a[3],t2plp[a[3]]);
+                 LOG_NIT(DBGNIT "found t2 plpid %d %d\n",a[3],t2plp[a[3]]);
                  found_=true;
                  }
                  break;
@@ -1537,8 +1538,8 @@ void NitFilter::Process(u_short Pid, u_char Tid, const u_char * Data, int Length
     StateKey.Remove(ChannelsModified);
 #endif
 
-    DEBUG_NIT(DBGNIT " ++  End of ProcessLoop MapSize: %d  lastCount %d   \n", (int)transponderMap.size(), lastCount);
-    DEBUG_NIT(DBGNIT " -- moreThanOneSection %d\n", nit.moreThanOneSection());
+    LOG_NIT(DBGNIT " ++  End of ProcessLoop MapSize: %d  lastCount %d   \n", (int)transponderMap.size(), lastCount);
+    LOG_NIT(DBGNIT " -- moreThanOneSection %d\n", nit.moreThanOneSection());
 
     if (!nit.moreThanOneSection())
     {
@@ -1547,12 +1548,12 @@ void NitFilter::Process(u_short Pid, u_char Tid, const u_char * Data, int Length
     else
     {
         endofScan = true;
-        DEBUG_NIT(DBGNIT "DEBUG [nit]:  -- LastSectionNumber  %d\n", nit.getLastSectionNumber());
+        LOG_NIT(DBGNIT "-- LastSectionNumber  %d\n", nit.getLastSectionNumber());
 
         //for (int i = 0; i<sectionSeen.size();i++)
         for (int i = 0; i < nit.getLastSectionNumber() + 1; i++)
         {
-            DEBUG_NIT(DBGNIT "DEBUG [nit]:  -- Seen[%d] %s\n", i, sectionSeen_[i] ? "YES" : "NO");
+            LOG_NIT(DBGNIT "-- Seen[%d] %s\n", i, sectionSeen_[i] ? "YES" : "NO");
 
             if (sectionSeen_[i] == 0)
             {
@@ -1564,11 +1565,11 @@ void NitFilter::Process(u_short Pid, u_char Tid, const u_char * Data, int Length
 
     if (endofScan == true)
     {
-        DEBUG_NIT (DBGNIT "DEBUG [channescan ]: filter.c  End of ProcessLoop newMap size: %d  \n", (int)transponderMap.size());
+        LOG_NIT (DBGNIT "filter.c  End of ProcessLoop newMap size: %d  \n", (int)transponderMap.size());
         vector < int >tmp(64, 0);
         sectionSeen_ = tmp;
     }
 
     lastCount = transponderMap.size();
-    DEBUG_NIT(DBGNIT "DEBUG [channescan ]: set endofScan %s \n", endofScan ? "TRUE" : "FALSE");
+    LOG_NIT(DBGNIT "set endofScan %s \n", endofScan ? "TRUE" : "FALSE");
 }
