@@ -71,10 +71,13 @@ ifeq ($(shell test -f $(VDRDIR)/PLUGINS/src/rotor/rotor.h; echo $$?),0)
 endif
 # mcli
 ifeq ($(shell test -f $(VDRDIR)/PLUGINS/src/mcli/mcli_service.h; echo $$?),0)
+ifeq ($(shell pkg-config --exists libnetceiver && echo 1),1)
+  NETCV_INC:=$(shell pkg-config --cflags libnetceiver)
   DEFINES += -DUSE_MCLI
-  XML_INC ?= $(shell xml2-config --cflags)
-  INCLUDES += -I. $(XML_INC)
+  INCLUDES += -I. $(NETCV_INC)
 endif
+endif
+
 ### Debug
 #DEFINES +=-DDEBUG_CSMENU
 #DEFINES +=-DDEBUG_SCAN
