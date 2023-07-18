@@ -22,8 +22,6 @@ VERSION = $(shell grep 'static const char \*VERSION *=' channelscan.h | awk '{ p
 
 ### The directory environment:
 
-VDRDIR = ../../..
-LIBDIR = ../../lib
 PKGCFG = $(if $(VDRDIR),$(shell pkg-config --variable=$(1) $(VDRDIR)/vdr.pc),$(shell pkg-config --variable=$(1) vdr || pkg-config --variable=$(1) ../../../vdr.pc))
 LIBDIR = $(DESTDIR)$(call PKGCFG,libdir)
 LOCDIR = $(DESTDIR)$(call PKGCFG,locdir)
