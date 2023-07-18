@@ -629,7 +629,7 @@ void cScan::ScanDVB_S(cTransponder * tp, cChannel * c)
         if (!device->SwitchChannel(c, device->IsPrimaryDevice()))
         {
             LOG_SCAN("SwitchChannel(%d)  failed\n", c->Frequency());
-#if HAVE_ROTOR
+#if 0
             LOG_SCAN("try Switch rotor \n");
 
             struct
@@ -639,13 +639,13 @@ void cScan::ScanDVB_S(cTransponder * tp, cChannel * c)
             } data;
 
             data.device = device;
-            data.channel = &c;
+            data.channel = c;
 
             cPlugin *p = cPluginManager::GetPlugin("rotor");
             if (p)
             {
                 isyslog("Info [channelscan] Switch rotor \n");
-                Plugin->Service("Rotor-SwitchChannel", &data);
+                p->Service("Rotor-SwitchChannel", &data);
                 DEBUG_printf("\nSleeping %s %d\n",__PRETTY_FUNCTION__,__LINE__);
                 usleep(100 * 1000); // inside loop, inside if // wait for rotor
             }

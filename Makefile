@@ -63,10 +63,6 @@ DEFINES += -DPLUGIN_NAME_I18N='"$(PLUGIN)"' -DVDRDIR=\"$(VDRDIR)\"  -DNDEBUG
 ifdef REELVDR
   DEFINES += -DREELVDR
 endif
-# rotor
-ifeq ($(shell test -f $(VDRDIR)/PLUGINS/src/rotor/rotor.h; echo $$?),0)
-  DEFINES += -DHAVE_ROTOR
-endif
 # mcli
 ifeq ($(shell pkg-config --exists libnetceiver && echo 1),1)
   NETCV_INC:=$(shell pkg-config --cflags libnetceiver)
