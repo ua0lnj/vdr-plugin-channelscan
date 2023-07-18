@@ -68,12 +68,10 @@ ifeq ($(shell test -f $(VDRDIR)/PLUGINS/src/rotor/rotor.h; echo $$?),0)
   DEFINES += -DHAVE_ROTOR
 endif
 # mcli
-ifeq ($(shell test -f $(VDRDIR)/PLUGINS/src/mcli/mcli_service.h; echo $$?),0)
 ifeq ($(shell pkg-config --exists libnetceiver && echo 1),1)
   NETCV_INC:=$(shell pkg-config --cflags libnetceiver)
   DEFINES += -DUSE_MCLI
   INCLUDES += -I. $(NETCV_INC)
-endif
 endif
 
 ### Debug

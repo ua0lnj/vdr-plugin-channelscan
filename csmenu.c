@@ -45,8 +45,8 @@
 #include "channellistbackupmenu.h"
 #include "rotortools.h"
 #ifdef USE_MCLI
-#include "../mcli/mcli_service.h"
-#include "../mcli/mcliheaders.h"
+#include "mcli_service.h"
+#include "netcv/defs.h"
 #endif
 
 #include <bzlib.h>
