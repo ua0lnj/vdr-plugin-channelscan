@@ -513,6 +513,7 @@ void cScan::ScanDVB_S(cTransponder * tp, cChannel * c)
     int maxmods = scanParameter_.type == SATS2 ? 5 : 1;
     int lockTimeout;
     int foundServices = 0, a = 0;
+    int actual = 0;
 
    // esyslog("%s cTransponder* tp = %x  cChannel *c = %x", __PRETTY_FUNCTION__);
 //    esyslog("maxmods = %d sys %d\n",maxmods, tp->System());
@@ -521,7 +522,12 @@ void cScan::ScanDVB_S(cTransponder * tp, cChannel * c)
     if (maxmods == 1 && tp->System() == DVB_SYSTEM_2)
         return;
 
-    if (device->IsPrimaryDevice()) cDevice::PrimaryDevice()->StopReplay();
+    if (device == cDevice::ActualDevice())
+    {
+        cDevice::PrimaryDevice()->StopReplay();
+        device->SetOccupied(60);
+        actual = 1;
+    }
 
     unsigned  int nRadio = radioChannelNames.size();
     unsigned  int nTv = tvChannelNames.size();
@@ -626,7 +632,7 @@ void cScan::ScanDVB_S(cTransponder * tp, cChannel * c)
 
         if (!device->ProvidesTransponder(c)) continue;
 
-        if (!device->SwitchChannel(c, device->IsPrimaryDevice()))
+        if (!device->SwitchChannel(c, actual))
         {
             LOG_SCAN("SwitchChannel(%d)  failed\n", c->Frequency());
 #if 0
@@ -726,12 +732,18 @@ void cScan::ScanDVB_T(cTransponder * tp, cChannel * c)
     int timeout = 2000;
     int response, n, m, s, plps, p;
     int frequency_orig = tp->Frequency();
+    int actual = 0;
     region = scanParameter_.region;
     int Muxs = 0;
     plps = 0;
     memset(t2plp,0,sizeof(t2plp));
 
-    if (device->IsPrimaryDevice()) cDevice::PrimaryDevice()->StopReplay();
+    if (device == cDevice::ActualDevice())
+    {
+        cDevice::PrimaryDevice()->StopReplay();
+        device->SetOccupied(60);
+        actual = 1;
+    }
 
     /* For Nit transponders */
     if (frequency_orig < 1000000)
@@ -789,7 +801,7 @@ void cScan::ScanDVB_T(cTransponder * tp, cChannel * c)
                     c->SetId(0, 0, 0, scanParameter_.adapter - 200);
 
                 // retune with offset
-                if (!device->SwitchChannel(c, device->IsPrimaryDevice()))
+                if (!device->SwitchChannel(c, actual))
                 {
                     esyslog("SwitchChannel(c)  failed\n");
                     break;
@@ -864,9 +876,15 @@ void cScan::ScanDVB_C(cTransponder * tp, cChannel * c)
     int str1 = 0;
     int srtab[3] = { 6900, 6875, 6111 };
     int fixedModulation = 0;
+    int actual = 0;
     region = scanParameter_.region;
 
-    if (device->IsPrimaryDevice()) cDevice::PrimaryDevice()->StopReplay();
+    if (device == cDevice::ActualDevice())
+    {
+        cDevice::PrimaryDevice()->StopReplay();
+        device->SetOccupied(60);
+        actual = 1;
+    }
 
     /* For Nit transponders */
     frequency = tp->Frequency();
@@ -934,7 +952,7 @@ void cScan::ScanDVB_C(cTransponder * tp, cChannel * c)
             if (scanParameter_.adapter > 200)
                 c->SetId(0, 0, 0, scanParameter_.adapter - 200);
 
-            if (!device->SwitchChannel(c, device->IsPrimaryDevice()))
+            if (!device->SwitchChannel(c, actual))
             {
                 esyslog("Primary SwitchChannel(c)  failed\n");
                 break;
@@ -987,11 +1005,17 @@ void cScan::ScanATSC(cTransponder * tp, cChannel * c)
 {
     int timeout = 1000;
     int fixedModulation = 0;
+    int actual = 0;
     region = scanParameter_.region;
 
     frequency = tp->Frequency();
 
-    if (device->IsPrimaryDevice()) cDevice::PrimaryDevice()->StopReplay();
+    if (device == cDevice::ActualDevice())
+    {
+        cDevice::PrimaryDevice()->StopReplay();
+        device->SetOccupied(60);
+        actual = 1;
+    }
 
     /* ??? ATSC ??? For Nit transponders */
     frequency = tp->Frequency();
@@ -1030,7 +1054,7 @@ void cScan::ScanATSC(cTransponder * tp, cChannel * c)
         if (scanParameter_.adapter > 200)
             c->SetId(0, 0, 0, scanParameter_.adapter - 200);
 
-        if (!device->SwitchChannel(c, device->IsPrimaryDevice()))
+        if (!device->SwitchChannel(c, actual))
         {
             esyslog("Primary SwitchChannel(c)  failed\n");
             break;
@@ -1065,6 +1089,7 @@ void cScan::ScanDVB_I(cTransponder * tp, cChannel * c)
         return;
 
     tp->SetTransponderData(c, sourceCode);
+
     cDevice::PrimaryDevice()->StopReplay();
     cDevice::PrimaryDevice()->SwitchChannel(c,true);
 

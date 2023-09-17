@@ -466,7 +466,8 @@ void cMenuChannelscan::TunerDetection() {
         if (device)
         {
 
-            LOG_CSMENU(DBGM "tuner %d numprovsys %d type %s name %s\n",tuner,device->NumProvidedSystems(),(const char*)device->DeviceType(),(const char*)device->DeviceName());
+            LOG_CSMENU(DBGM "tuner %d numprovsys %d type %s name %s primary %d\n",tuner,device->NumProvidedSystems(),(const char*)device->DeviceType(),
+                (const char*)device->DeviceName(), device->IsPrimaryDevice());
 
             iptv   = strcmp(device->DeviceType(),"IPTV")   == 0;
             satip  = strcmp(device->DeviceType(),"SAT>IP") == 0;
