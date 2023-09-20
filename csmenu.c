@@ -733,6 +733,12 @@ void cMenuChannelscan::Set()
 
     srcItem = NULL;
     Clear();
+    Display();
+
+    int maxLINES = DisplayMenu()->MaxItems();
+    LOG_CSMENU(DBGM "max lines %d\n", maxLINES);
+
+    int ub = maxLINES >= 19 ? 1 : 0;
 
     int blankLines = 3;
     sourceType = srcTypes[currentTuner];
@@ -759,18 +765,18 @@ void cMenuChannelscan::Set()
         AddBlankLineItem(1);
     Add(new cMenuEditStraItem(tr("Add new channels to"), &addNewChannelsTo, 2, addNewChannelsToTexts));
 
-    if(srcAdapter[currentTuner] == device_SATIP)
-        Add(new cMenuEditIntItem(tr("SAT>IP Frontend"), &siFrontend, 0, 99));
-    else
-        AddBlankLineItem(1);
-
     if (::Setup.UseSmallFont == 0)
-        AddBlankLineItem(3);
+        AddBlankLineItem(3 * ub);
 
     if (srcTuners > 0)          // if no tune available : prevent CRASH
         Add(new cMenuEditStraItem(tr("Source"), &currentTuner, srcTuners, srcTexts));
     else
         Add(new cOsdItem(tr("No Tuners available"), osUnknown, false));
+
+    if(srcAdapter[currentTuner] == device_SATIP)
+        Add(new cMenuEditIntItem(tr("SAT>IP Frontend"), &siFrontend, 0, 99));
+    else
+        AddBlankLineItem(1 * ub);
 
     switch (sourceType)
     {
@@ -819,7 +825,7 @@ void cMenuChannelscan::Set()
                 }
                 else
                 {
-                    AddBlankLineItem(3);
+                    AddBlankLineItem(3 * ub);
                 }
                 Add(new cMenuEditStrItem(tr("Provider's Name"), provider, sizeof(provider)));
                 Add(new cMenuEditIntItem(tr("Timeout, sec"), &timeout,1,10));
@@ -859,7 +865,7 @@ void cMenuChannelscan::Set()
     }
 
     if (scanMode != eModeManual)
-        AddBlankLineItem(1);
+        AddBlankLineItem(1 * ub);
 
     if (scanMode == eModeManual)
     {
@@ -879,7 +885,7 @@ void cMenuChannelscan::Set()
         switch (sourceType)
         {
             case SAT:
-                AddBlankLineItem(3);
+                AddBlankLineItem(3 * ub);
                 Add(new cMenuEditIntItem(tr("Frequency (MHz)"), &frequency));
                 Add(new cMenuEditChrItem(tr("Polarization"), &polarization, "HVLR"));
                 Add(new cMenuEditIntItem(tr("Symbolrate"), &symbolrate));
@@ -888,11 +894,11 @@ void cMenuChannelscan::Set()
                 break;
             case SATS2:
                 Add(new cMenuEditStraItem(tr("DVB generation"), &sysStat, 2, sysTexts));
-                AddBlankLineItem(1);
+                AddBlankLineItem(1 * ub);
                 if(sysStat && srcMS[currentTuner])
                     Add(new cMenuEditIntItem(tr("DVB-S2 stream ID"), &streamId, 0, 65525));
                 else
-                    AddBlankLineItem(1);
+                    AddBlankLineItem(1 * ub);
                 Add(new cMenuEditIntItem(tr("Frequency (MHz)"), &frequency));
                 Add(new cMenuEditChrItem(tr("Polarization"), &polarization, "HVLR"));
                 Add(new cMenuEditIntItem(tr("Symbolrate"), &symbolrate));
@@ -905,7 +911,7 @@ void cMenuChannelscan::Set()
             case CABLE:
                 srScanMode = 2;
                 Add(new cMenuEditIntItem(tr("Channel"), &channel));
-                AddBlankLineItem(3);
+                AddBlankLineItem(3 * ub);
                 if (channel)
                 {
                     Add(new cMenuInfoItem(tr("Frequency (kHz)"), frequency = cTransponders::channel2Frequency(regionStat, channel, bandwidth) / 1000, true));
@@ -913,7 +919,7 @@ void cMenuChannelscan::Set()
                 }
                 else
                     Add(new cMenuEditIntItem(tr("Frequency (kHz)"), &frequency));
-                AddBlankLineItem(1);
+                AddBlankLineItem(1 * ub);
                 Add(new cMenuEditIntItem(tr("Symbolrate"), &symbolrate));
                 Add(new cMenuEditStraItem(tr("Modulation"), &modStat, 7, modTexts));
                 if(channel)
@@ -934,10 +940,10 @@ void cMenuChannelscan::Set()
                     if(plpStat)
                         Add(new cMenuEditIntItem(tr("DVB-T2 stream ID"), &streamId, 0, 255));
                     else
-                        AddBlankLineItem(1);
+                        AddBlankLineItem(1 * ub);
                 }
                 else
-                    AddBlankLineItem(2);
+                    AddBlankLineItem(2 * ub);
             case TERR:
             case DMB_TH:
             case ISDB_T:
@@ -945,7 +951,7 @@ void cMenuChannelscan::Set()
                 if (sourceType != TERR2)
                 {
                     Add(new cMenuEditIntItem(tr("Channel"), &channel));
-                    AddBlankLineItem(3);
+                    AddBlankLineItem(3 * ub);
                 }
                 if (channel)
                 {
@@ -957,7 +963,7 @@ void cMenuChannelscan::Set()
                 if (sourceType != DMB_TH && sourceType != ISDB_T && sourceType != ATSC)
                     Add(new cMenuEditStraItem(tr("Bandwidth"), &bandwidth, 3, sBwTexts));
                 else if (sourceType == ATSC)
-                    AddBlankLineItem(1);
+                    AddBlankLineItem(1 * ub);
                 else
                 {
                     if (sourceType == DMB_TH) //8 MHz
@@ -966,11 +972,11 @@ void cMenuChannelscan::Set()
                         bandwidth = 3;
                     Add(new cMenuInfoItem(tr("Bandwidth"), sBwTexts[bandwidth]));
                 }
-                AddBlankLineItem(1);
+                AddBlankLineItem(1 * ub);
                 if (sourceType == ATSC)
                     Add(new cMenuEditStraItem(tr("Modulation"), &modStat, 3, modTextsA));
                 else
-                    AddBlankLineItem(1);
+                    AddBlankLineItem(1 * ub);
                 if (channel && sourceType != ATSC)
                     Add(new cMenuEditStraItem(tr("Region"), &regionStat, 4, regionTexts));
                 if (channel && sourceType == ATSC)
@@ -983,7 +989,7 @@ void cMenuChannelscan::Set()
                 blankLines += 2;
                 break;
             case IPTV:
-                AddBlankLineItem(2);
+                AddBlankLineItem(2 * ub);
                 Add(new cMyMenuEditIpItem(tr("UDP multicast address"), &startIp[0],&startIp[1],&startIp[2],&startIp[3]));
                 Add(new cMenuEditIntItem(tr("UDP port"), &port, 0, 65525));
                 Add(new cMenuEditStrItem(tr("Provider's Name"), provider, sizeof(provider)));
@@ -994,15 +1000,15 @@ void cMenuChannelscan::Set()
                 if (analogType == 0 && inputStat == 0)
                     Add(new cMenuEditIntItem(tr("Channel"), &channel));
                 else
-                    AddBlankLineItem(1);
-                AddBlankLineItem(1);
+                    AddBlankLineItem(1 * ub);
+                AddBlankLineItem(1 * ub);
                 Add(new cMenuEditStraItem(tr("Analog search"), &analogType, 2, analogTypeTexts));
                 if (analogType == 1)
                 {
                     channel = 0;
                     inputStat = 0;
                 }
-                AddBlankLineItem(1);
+                AddBlankLineItem(1 * ub);
                 if(channel && inputStat == 0)
                 {
                     Add(new cMenuInfoItem(tr("Frequency (kHz)"), frequency = cTransponders::channel2Frequency(regionStat + 100, channel, bandwidth) / 1000, true));
@@ -1011,7 +1017,7 @@ void cMenuChannelscan::Set()
                 else if (inputStat == 0)
                     Add(new cMenuEditIntItem(tr("Frequency (kHz)"), &frequency));
                 else
-                    AddBlankLineItem(1);
+                    AddBlankLineItem(1 * ub);
                 if (analogType == 0)
                 {
                     Add(new cMenuEditStraItem(tr("Input"), &inputStat, 11, pvrInput));
@@ -1019,7 +1025,7 @@ void cMenuChannelscan::Set()
                 }
                 else
                     blankLines += 2;
-                AddBlankLineItem(1);
+                AddBlankLineItem(1 * ub);
                 if (channel && inputStat == 0)
                     Add(new cMenuEditStraItem(tr("Region"), &regionStat, 6, regionTexts));
                 if (!frequency && channel && inputStat == 0)
@@ -1045,7 +1051,7 @@ void cMenuChannelscan::Set()
 //    if (::Setup.UseSmallFont || strcmp(::Setup.OSDSkin, "Reel") == 0)
         blankLines -= 3;
 
-    AddBlankLineItem(blankLines);
+    AddBlankLineItem(blankLines * ub);
     //Check this
 
     SetInfoBar();
@@ -1117,7 +1123,8 @@ void cMenuChannelscan::SetInfoBar() // Check with  cMenuScanActive
     LOCK_CHANNELS_READ;
     Add(new cMenuInfoItem(tr("Entries in current channellist"), Channels->MaxNumber()));
 #endif
-    AddBlankLineItem(1,true);
+    if (DisplayMenu()->MaxItems() < 12)
+        AddBlankLineItem(1,true);
 }
 
 void cMenuChannelscan::Store()
