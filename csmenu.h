@@ -157,7 +157,7 @@ class cMenuChannelscan:public cOsdMenu
     void Set();
     void InitLnbs();
     void TunerDetection();
-    void SetInfoBar();
+    void SetInfoBar(int xb);
     int InitSource();
     void TunerAdd(int device, int adapter, int frontend, int stp,int mpt,char *txt);
     cMyMenuEditSrcItem *srcItem;

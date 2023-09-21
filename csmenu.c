@@ -738,7 +738,9 @@ void cMenuChannelscan::Set()
     int maxLINES = DisplayMenu()->MaxItems();
     LOG_CSMENU(DBGM "max lines %d\n", maxLINES);
 
-    int ub = maxLINES >= 19 ? 1 : 0;
+    int ub = maxLINES >= 19 ? 1 : 0; //no blank lines if there are few lines on the screen
+
+    int xb = 0; //blank line at the end of the menu if the menu does not fit on the screen
 
     int blankLines = 3;
     sourceType = srcTypes[currentTuner];
@@ -774,7 +776,10 @@ void cMenuChannelscan::Set()
         Add(new cOsdItem(tr("No Tuners available"), osUnknown, false));
 
     if(srcAdapter[currentTuner] == device_SATIP)
+    {
         Add(new cMenuEditIntItem(tr("SAT>IP Frontend"), &siFrontend, 0, 99));
+        xb = !ub;
+    }
     else
         AddBlankLineItem(1 * ub);
 
@@ -896,7 +901,10 @@ void cMenuChannelscan::Set()
                 Add(new cMenuEditStraItem(tr("DVB generation"), &sysStat, 2, sysTexts));
                 AddBlankLineItem(1 * ub);
                 if(sysStat && srcMS[currentTuner])
+                {
                     Add(new cMenuEditIntItem(tr("DVB-S2 stream ID"), &streamId, 0, 65525));
+                    xb = !ub;
+                }
                 else
                     AddBlankLineItem(1 * ub);
                 Add(new cMenuEditIntItem(tr("Frequency (MHz)"), &frequency));
@@ -1054,7 +1062,7 @@ void cMenuChannelscan::Set()
     AddBlankLineItem(blankLines * ub);
     //Check this
 
-    SetInfoBar();
+    SetInfoBar(xb);
 
 #ifdef REELVDR
     if (cRecordControls::Active())
@@ -1074,7 +1082,7 @@ void cMenuChannelscan::Set()
     Display();
 }
 
-void cMenuChannelscan::SetInfoBar() // Check with  cMenuScanActive
+void cMenuChannelscan::SetInfoBar(int xb) // Check with  cMenuScanActive
 {
 
     LOG_CSMENU(DBGM " Menus --- %s -- scanState %d ---  \n", __PRETTY_FUNCTION__, scanState);
@@ -1123,8 +1131,8 @@ void cMenuChannelscan::SetInfoBar() // Check with  cMenuScanActive
     LOCK_CHANNELS_READ;
     Add(new cMenuInfoItem(tr("Entries in current channellist"), Channels->MaxNumber()));
 #endif
-    if (DisplayMenu()->MaxItems() < 12)
-        AddBlankLineItem(1,true);
+    if (DisplayMenu()->MaxItems() < 12 || xb)
+        AddBlankLineItem(1,true);  //blank line at the end of the menu for scrolling
 }
 
 void cMenuChannelscan::Store()
