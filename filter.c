@@ -827,8 +827,11 @@ void SdtFilter::Process(u_short Pid, u_char Tid, const u_char * Data, int Length
     SI::SDT sdt(Data, false);
     if (!sdt.CheckCRCAndParse())
         return;
-
+#if VDRVERSNUM < 20502
     if (!sectionSyncer.Sync(sdt.getVersionNumber(), sdt.getSectionNumber(), sdt.getLastSectionNumber()))
+#else
+    if (!sectionSyncer.Check(sdt.getVersionNumber(), sdt.getSectionNumber()))
+#endif
         return;
 #if VDRVERSNUM < 20301
     if (!Channels.Lock(true, 10))
@@ -840,7 +843,9 @@ void SdtFilter::Process(u_short Pid, u_char Tid, const u_char * Data, int Length
 
     if (!Channels)
     {
+#if VDRVERSNUM < 20502
         sectionSyncer.Repeat(); // let's not miss any section of the SDT
+#endif
 #endif
         return;
     }
@@ -1119,7 +1124,11 @@ void SdtFilter::Process(u_short Pid, u_char Tid, const u_char * Data, int Length
 #else
      StateKey.Remove(ChannelsModified);
 #endif
+#if VDRVERSNUM < 20502
     if (sdt.getSectionNumber() == sdt.getLastSectionNumber())
+#else
+    if (sectionSyncer.Processed(sdt.getSectionNumber(), sdt.getLastSectionNumber()))
+#endif
     {
         patFilter->SdtFinished();
         SetStatus(false);
@@ -1236,14 +1245,22 @@ void NitFilter::Process(u_short Pid, u_char Tid, const u_char * Data, int Length
   SI::NIT nit(Data, false);
   if (!nit.CheckCRCAndParse())
      return;
+#if VDRVERSNUM < 20502
   if (!sectionSyncer.Sync(nit.getVersionNumber(), nit.getSectionNumber(), nit.getLastSectionNumber()))
+#else
+  if (!sectionSyncer.Check(nit.getVersionNumber(), nit.getSectionNumber()))
+#endif
      return;
 
     int getTransponderNum = 0;
 
     // return if we have seen the Table already
     int cnt = ++TblVersions[nit.getVersionNumber()];
+#if VDRVERSNUM < 20502
     if (cnt > nit.getLastSectionNumber() + 1)
+#else
+    if (sectionSyncer.Processed(nit.getSectionNumber(), nit.getLastSectionNumber()) && cnt > nit.getLastSectionNumber() + 1)
+#endif
     {
         LOG_NIT(DBGNIT "++  NIT Version %d found %d times \n", cnt, nit.getVersionNumber());
         endofScan = true;
@@ -1274,7 +1291,9 @@ void NitFilter::Process(u_short Pid, u_char Tid, const u_char * Data, int Length
   cStateKey StateKey;
   cChannels *Channels = cChannels::GetChannelsWrite(StateKey, 10);
   if (!Channels) {
+#if VDRVERSNUM < 20502
      sectionSyncer.Repeat(); // let's not miss any section of the NIT
+#endif
      return;
      }
   bool ChannelsModified = false;
